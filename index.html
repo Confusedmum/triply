@@ -929,6 +929,9 @@ function activateTrip(tripId,doSave=true){
   if(!state.panelWidths)  state.panelWidths ={pit:400,pmap:380};
   if(!state.panelVisible) state.panelVisible={pit:true,pres:true,pmap:true};
   if(!state.flights)      state.flights     =[];
+  // Restore attachments from card data into pendingAtts
+  pendingAtts={};
+  (state.cards||[]).forEach(c=>{ if(c.attachments&&c.attachments.length) pendingAtts[c.id]=[...c.attachments]; });
   localStorage.setItem('triply_active',tripId);
   allTrips[tripId]=state;
 }
@@ -1695,7 +1698,8 @@ function editCard(id){
   document.getElementById('fAddr').value  =c.address||'';
   document.getElementById('geoHint').textContent='';
   populateCatSel(c.catId); refreshSP();
-  if(!pendingAtts[c.id]) pendingAtts[c.id]=[];
+  // Load attachments from card data (persisted in Supabase)
+  pendingAtts[c.id] = c.attachments ? [...c.attachments] : [];
   renderAttList(); renderExtraLinks(c.extraLinks||[]); renderNotesImgsModal();
   if(c.imgUrl) showPrev(c.imgUrl); else hidePrev();
   openOv('cardOv');
@@ -1721,11 +1725,14 @@ function saveCard(){
   const address= document.getElementById('fAddr').value.trim();
   const extraLinks=collectExtraLinks();
   if(!name&&!link){ showToast('Enter a name or link'); return; }
-  const data={name:name||domain(link),link,imgUrl:img,cost,notes,catId,status:curSt,lat,lng,address,extraLinks,notesImages:curNotesImgs};
-  if(editId){ Object.assign(state.cards.find(x=>x.id===editId),data); }
-  else{
+  const cardAtts = pendingAtts[editId||'__new__']||[];
+  const data={name:name||domain(link),link,imgUrl:img,cost,notes,catId,status:curSt,lat,lng,address,extraLinks,notesImages:curNotesImgs,attachments:cardAtts};
+  if(editId){
+    Object.assign(state.cards.find(x=>x.id===editId),data);
+  } else {
     const nc={id:uid(),...data};
-    if(pendingAtts['__new__']&&pendingAtts['__new__'].length){ pendingAtts[nc.id]=pendingAtts['__new__']; delete pendingAtts['__new__']; }
+    // move __new__ atts to card id
+    if(pendingAtts['__new__']) { pendingAtts[nc.id]=pendingAtts['__new__']; delete pendingAtts['__new__']; }
     state.cards.push(nc);
   }
   save(); closeCardModal(); renderAll(); showToast(editId?'Place updated':'Place added');
@@ -1762,7 +1769,12 @@ function setImgOv(){ const v=document.getElementById('fImgUrl').value.trim(); if
 function handleImgUpload(e){
   const file=e.target.files[0]; if(!file)return;
   const reader=new FileReader();
-  reader.onload=ev=>{showPrev(ev.target.result);document.getElementById('fImgUrl').value='';};
+  reader.onload=async ev=>{
+    let src=ev.target.result;
+    try{ src=await uploadFileToStorage(ev.target.result,file.name); }
+    catch(err){ console.warn('Image upload failed, using base64'); }
+    showPrev(src); document.getElementById('fImgUrl').value=src;
+  };
   reader.readAsDataURL(file); e.target.value='';
 }
 function showPrev(src){ document.getElementById('iPrev').src=src; document.getElementById('iPrevWrap').style.display='block'; }
@@ -1779,14 +1791,26 @@ function renderNotesImgsModal(){
     </div>`).join('');
   wrap.innerHTML=imgs;
 }
+async function uploadNotesImg(file){
+  showToast('Uploading image…');
+  const reader=new FileReader();
+  return new Promise(resolve=>{
+    reader.onload=async ev=>{
+      let src=ev.target.result;
+      try{ src=await uploadFileToStorage(ev.target.result,file.name); showToast('Image uploaded ✓'); }
+      catch(e){ console.warn('Storage upload failed, using base64'); }
+      resolve(src);
+    };
+    reader.readAsDataURL(file);
+  });
+}
 function handleNotesImg(e){
   const files=Array.from(e.target.files); if(!files.length)return;
-  files.forEach(file=>{
+  files.forEach(async file=>{
     if(!file.type.startsWith('image/')){showToast('Only image files supported');return;}
-    if(file.size>5*1024*1024){showToast('Image too large (max 5MB)');return;}
-    const reader=new FileReader();
-    reader.onload=ev=>{curNotesImgs.push(ev.target.result);renderNotesImgsModal();};
-    reader.readAsDataURL(file);
+    if(file.size>10*1024*1024){showToast('Image too large (max 10MB)');return;}
+    const src=await uploadNotesImg(file);
+    curNotesImgs.push(src); renderNotesImgsModal();
   });
   e.target.value='';
 }
@@ -1796,14 +1820,12 @@ function handleNotesImgDrop(e){
   if(dz) dz.classList.remove('over');
   const files=Array.from(e.dataTransfer.files).filter(f=>f.type.startsWith('image/'));
   if(files.length){
-    files.forEach(file=>{
-      if(file.size>5*1024*1024){showToast('Image too large (max 5MB)');return;}
-      const reader=new FileReader();
-      reader.onload=ev=>{curNotesImgs.push(ev.target.result);renderNotesImgsModal();};
-      reader.readAsDataURL(file);
+    files.forEach(async file=>{
+      if(file.size>10*1024*1024){showToast('Image too large (max 10MB)');return;}
+      const src=await uploadNotesImg(file);
+      curNotesImgs.push(src); renderNotesImgsModal();
     });
   } else {
-    // Try to extract image URL from dragged browser image
     const html=e.dataTransfer.getData('text/html');
     const urlDirect=e.dataTransfer.getData('text/uri-list')||e.dataTransfer.getData('text/plain');
     const srcMatch=html&&html.match(/src=["']([^"']+)["']/i);
