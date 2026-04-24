@@ -1,0 +1,2232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Triply — Travel Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* SETUP SCREEN */
+.setup-ov{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center}
+.setup-ov.hidden{display:none}
+.setup-box{background:var(--surface);border:1px solid var(--b2);border-radius:16px;width:500px;max-width:95vw;padding:32px;box-shadow:0 6px 24px rgba(0,0,0,.13)}
+.setup-logo{font-family:'Playfair Display',serif;font-size:28px;color:var(--acc);margin-bottom:8px}
+.setup-sub{font-size:13px;color:var(--t2);margin-bottom:24px;line-height:1.6}
+.setup-field{margin-bottom:14px}
+.setup-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);margin-bottom:5px;display:block}
+.setup-input{width:100%;background:var(--s2);border:1px solid var(--b);border-radius:var(--rs);padding:9px 12px;color:var(--t);font-size:13px;font-family:inherit;outline:none;transition:border-color .15s}
+.setup-input:focus{border-color:var(--acc)}
+.setup-btn{width:100%;padding:11px;border-radius:var(--rs);font-size:14px;font-weight:600;cursor:pointer;border:none;font-family:inherit;background:var(--acc);color:#fff;margin-top:8px}
+.setup-btn:hover{background:var(--acc2)}
+.setup-note{font-size:11px;color:var(--t3);margin-top:12px;line-height:1.5}
+.setup-migrate{background:var(--accbg);border:1px solid var(--b2);border-radius:var(--rs);padding:10px 12px;font-size:11px;color:var(--t2);margin-top:12px;display:none}
+/* SYNC DOT */
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--t3);display:inline-block;margin-left:4px;transition:background .3s;vertical-align:middle}
+.sync-dot.saving{background:var(--maybe)}.sync-dot.saved{background:var(--yes)}.sync-dot.error{background:var(--no)}
+/* MAP VIEW TOGGLES */
+.map-view-toggles{display:flex;gap:5px;padding:6px 10px;border-bottom:1px solid var(--b);background:var(--surface);flex-shrink:0}
+.map-view-btn{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--b);background:transparent;color:var(--t3);font-family:inherit;transition:all .15s}
+.map-view-btn.on{border-color:var(--acc);color:var(--acc);background:var(--accbg)}
+.map-view-btn:hover:not(.on){color:var(--t)}
+:root{
+  --bg:#f5f0e8;--surface:#faf7f2;--s2:#f0ebe0;--s3:#e8e0d0;
+  --b:#ddd5c0;--b2:#c8bda8;
+  --t:#2c2820;--t2:#6b5f4e;--t3:#9e9080;
+  --ic:#4a4540;
+  --acc:#8b6914;--acc2:#6b500e;--accbg:rgba(139,105,20,.08);
+  --yes:#2d7a52;--maybe:#a06520;--no:#a03020;
+  --yesbg:rgba(45,122,82,.10);--maybebg:rgba(160,101,32,.10);--nobg:rgba(160,48,32,.10);
+  --shadow:0 2px 12px rgba(0,0,0,.08);--shadow2:0 6px 24px rgba(0,0,0,.13);
+  --r:10px;--rs:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Jost',sans-serif;background:var(--bg);color:var(--t);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+
+/* HEADER */
+header{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid var(--b);background:var(--surface);flex-shrink:0;box-shadow:var(--shadow);z-index:100}
+.logo{font-family:'Playfair Display',serif;font-size:21px;color:var(--acc);letter-spacing:-.2px;flex-shrink:0}
+.hdr-mid{display:flex;align-items:center;gap:8px;flex:1;justify-content:center}
+.trip-input{background:var(--s2);border:1px solid var(--b);border-radius:var(--rs);padding:5px 10px;color:var(--t);font-size:13px;font-family:inherit;outline:none;width:160px;transition:border-color .15s}
+.trip-input:focus{border-color:var(--acc)}
+.date-input{background:var(--s2);border:1px solid var(--b);border-radius:var(--rs);padding:5px 8px;color:var(--t);font-size:12px;font-family:inherit;outline:none;transition:border-color .15s}
+.date-input:focus{border-color:var(--acc)}
+.date-sep{font-size:11px;color:var(--t3)}
+.gen-btn{padding:5px 11px;border-radius:var(--rs);font-size:12px;font-weight:500;cursor:pointer;border:none;font-family:inherit;background:var(--acc);color:#fff;transition:background .15s;flex-shrink:0}
+.gen-btn:hover{background:var(--acc2)}
+.hdr-r{display:flex;gap:7px;align-items:center;flex-shrink:0}
+.panel-toggles{display:flex;gap:4px;background:var(--s2);border:1px solid var(--b);border-radius:20px;padding:3px 5px}
+.ptog{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:none;font-family:inherit;background:transparent;color:var(--t3);transition:all .15s}
+.ptog.on{background:var(--acc);color:#fff}
+.ptog:hover:not(.on){color:var(--t)}
+
+/* LAYOUT */
+.app{display:flex;flex:1;overflow:hidden;position:relative}
+.panel{display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;position:relative;transition:flex-basis .25s,width .25s}
+.panel.collapsed{width:0!important;min-width:0!important;max-width:0!important;border:none!important;flex:none!important;overflow:hidden!important}
+#pres.collapsed{flex:none!important}
+.panel+.panel{border-left:1px solid var(--b)}
+.ph{display:flex;align-items:center;justify-content:space-between;padding:9px 13px;border-bottom:1px solid var(--b);background:var(--surface);flex-shrink:0}
+.plbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--t3)}
+.pact{display:flex;gap:5px;align-items:center}
+.resize-handle{width:5px;flex-shrink:0;cursor:col-resize;background:transparent;z-index:10;transition:background .15s}
+.resize-handle:hover,.resize-handle.dragging{background:var(--acc)}
+.resize-handle.hidden{display:none}
+.ibtn.active{background:var(--acc);border-color:var(--acc);color:#fff}
+.ibtn.active:hover{background:var(--acc2)}
+
+/* LEFT: ITINERARY */
+#pit{width:400px;min-width:180px}
+#itin-body{flex:1;display:flex;gap:11px;overflow-x:auto;overflow-y:hidden;padding:12px;align-items:flex-start}
+#itin-body::-webkit-scrollbar{height:5px}
+#itin-body::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px}
+
+/* MIDDLE: RESEARCH */
+#pres{flex:1;min-width:200px}
+.filter-row{display:flex;gap:5px;padding:7px 11px;border-bottom:1px solid var(--b);flex-wrap:wrap;flex-shrink:0;background:var(--surface);align-items:center}
+.filter-sep{width:1px;height:16px;background:var(--b2);margin:0 3px;flex-shrink:0}
+.chip{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--b);background:transparent;color:var(--t3);font-family:inherit;transition:all .15s;display:inline-flex;align-items:center;gap:4px}
+.chip.on{border-color:var(--acc);color:var(--acc);background:var(--accbg)}
+.chip:hover:not(.on){color:var(--t);border-color:var(--b2)}
+.chip-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+#res-body{flex:1;overflow-y:auto;padding:11px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;align-content:start}
+#res-body::-webkit-scrollbar{width:6px}
+#res-body::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px}
+#res-body::-webkit-scrollbar-track{background:transparent}
+
+/* RIGHT: MAP */
+#pmap{width:380px;min-width:160px}
+#map{flex:1}
+.mleg{flex-shrink:0;padding:9px 13px;border-top:1px solid var(--b);background:var(--surface);max-height:140px;overflow-y:auto}
+.mleg-h{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:5px}
+.mleg-r{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--t2);margin-bottom:3px;cursor:pointer}
+.mleg-r:hover{color:var(--acc)}
+.mleg-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:var(--rs);font-size:12px;font-weight:500;cursor:pointer;border:none;font-family:inherit;transition:all .15s}
+.btn-p{background:var(--acc);color:#fff}.btn-p:hover{background:var(--acc2)}
+.btn-g{background:transparent;color:var(--t2);border:1px solid var(--b)}.btn-g:hover{background:var(--s2);color:var(--t)}
+.btn-s{padding:3px 8px;font-size:11px}
+.ibtn{width:25px;height:25px;border-radius:var(--rs);background:var(--s2);border:1px solid var(--b);color:var(--t2);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.ibtn:hover{background:var(--s3);color:var(--t)}
+
+/* CATEGORY ICON (SVG circle) */
+.cat-icon-circle{width:32px;height:32px;border-radius:50%;background:#f5f3ee;border:1.5px solid #4a4540;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cat-icon-circle svg{width:16px;height:16px;color:#4a4540;fill:none;stroke:#4a4540;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* map pin circle */
+.map-pin-circle{width:32px;height:32px;border-radius:50%;background:#f5f3ee;border:2px solid var(--pin-color,#4a4540);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.map-pin-circle svg{width:16px;height:16px;fill:none;stroke:var(--pin-color,#4a4540);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* RESEARCH CARD */
+.rc{background:var(--surface);border:1px solid var(--b);border-radius:var(--r);overflow:hidden;cursor:grab;transition:border-color .15s,box-shadow .15s,transform .15s;position:relative;display:flex;flex-direction:column;box-shadow:var(--shadow);height:230px}
+.rc:hover{border-color:var(--b2);box-shadow:var(--shadow2);transform:translateY(-2px)}
+.rc.drag{opacity:.4;cursor:grabbing}
+.rc[data-s="yes"]{border-left:3px solid var(--yes)}
+.rc[data-s="maybe"]{border-left:3px solid var(--maybe)}
+.rc[data-s="no"]{border-left:3px solid var(--no)}
+.rc-img{width:100%;height:90px;object-fit:cover;display:block;background:var(--s2);flex-shrink:0}
+.rc-ph{width:100%;height:90px;background:var(--s3);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rc-bd{padding:8px 11px 5px;flex:1;display:flex;flex-direction:column;justify-content:space-between;min-height:0}
+.rc-top{display:flex;align-items:flex-start;gap:6px;margin-bottom:5px}
+.rc-nm{font-size:13px;font-weight:600;flex:1;line-height:1.3;color:var(--t);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.rc-cat{font-size:10px;white-space:nowrap;flex-shrink:0;background:var(--s2);border:1px solid var(--b);border-radius:20px;padding:2px 7px;color:var(--t3);display:flex;align-items:center;gap:4px}
+.rc-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.rc-cost{font-size:11px;color:var(--acc);font-weight:600}
+.rc-st{font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px}
+.rc-st.yes{background:var(--yesbg);color:var(--yes)}
+.rc-st.maybe{background:var(--maybebg);color:var(--maybe)}
+.rc-st.no{background:var(--nobg);color:var(--no)}
+.rc-ft{display:flex;gap:4px;padding:6px 11px 8px;border-top:1px solid var(--b);overflow-x:auto;flex-wrap:nowrap;flex-shrink:0}
+.rc-ft::-webkit-scrollbar{height:3px}
+.rc-ft::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+.map-pin-btn{background:none;border:none;cursor:pointer;padding:0;display:inline-flex;align-items:center;font-size:10px;color:var(--acc);gap:3px;white-space:nowrap}
+.map-pin-btn:hover{text-decoration:underline}
+
+/* notes images */
+.notes-imgs{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.notes-img-wrap{position:relative;width:70px;height:70px;border-radius:var(--rs);overflow:hidden;border:1px solid var(--b);flex-shrink:0}
+.notes-img-wrap img{width:100%;height:100%;object-fit:cover;cursor:pointer}
+.notes-img-del{position:absolute;top:2px;right:2px;width:14px;height:14px;border-radius:50%;background:rgba(44,40,32,.7);border:none;color:#fff;cursor:pointer;font-size:8px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s}
+.notes-img-wrap:hover .notes-img-del{opacity:1}
+.notes-img-add{width:70px;height:70px;border:1.5px dashed var(--b2);border-radius:var(--rs);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t3);font-size:20px;transition:all .15s;flex-shrink:0}
+.notes-img-add:hover{border-color:var(--acc);color:var(--acc)}
+
+/* att */
+.att-list-card{padding:0 11px 8px;display:flex;flex-direction:column;gap:4px}
+.att-item{display:flex;align-items:center;gap:7px;background:var(--s2);border:1px solid var(--b);border-radius:var(--rs);padding:5px 9px;font-size:11px}
+.att-icon{font-size:15px;flex-shrink:0}
+.att-name{flex:1;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.att-open{background:var(--acc);color:#fff;border:none;border-radius:4px;padding:2px 7px;font-size:10px;cursor:pointer;font-family:inherit;flex-shrink:0}
+.att-open:hover{background:var(--acc2)}
+.att-del{background:none;border:none;color:var(--t3);cursor:pointer;font-size:12px;padding:0 2px;flex-shrink:0}
+.att-del:hover{color:var(--no)}
+
+/* DAY COLUMN */
+.dcol{background:var(--surface);border:1px solid var(--b);border-radius:var(--r);width:195px;min-width:195px;display:flex;flex-direction:column;max-height:calc(100vh - 100px);flex-shrink:0;box-shadow:var(--shadow)}
+.dcol-h{padding:8px 10px 6px;border-bottom:1px solid var(--b);flex-shrink:0;background:var(--s2);border-radius:var(--r) var(--r) 0 0}
+.d-title{font-family:'Playfair Display',serif;font-size:14px;color:var(--acc);display:block}
+.d-date-lbl{font-size:10px;color:var(--t3);font-weight:500}
+.dcol-scroll{flex:1;overflow-y:auto;padding:7px}
+.dcol-scroll::-webkit-scrollbar{width:3px}
+.dcol-scroll::-webkit-scrollbar-thumb{background:var(--b);border-radius:2px}
+.dsec{margin-bottom:7px}
+.dsec-h{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--t3);padding:3px 5px;border-bottom:1px solid var(--b);margin-bottom:3px;display:flex;align-items:center;gap:3px}
+.dsec-body{min-height:30px;border-radius:var(--rs);transition:background .15s;padding:2px}
+.dsec-body.over{background:rgba(139,105,20,.07);outline:1px dashed var(--acc)}
+.day-note{width:100%;border:none;background:transparent;font-family:'Jost',sans-serif;font-size:11px;color:var(--t2);resize:none;outline:none;min-height:26px;line-height:1.5;padding:2px 3px}
+.day-note::placeholder{color:var(--t3)}
+
+/* FLIGHT CARDS */
+.fc{background:linear-gradient(135deg,#1a2a4a 0%,#1e3a6e 100%);border-radius:var(--rs);margin-bottom:5px;overflow:hidden;position:relative;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.fc-head{display:flex;align-items:center;justify-content:space-between;padding:6px 9px 4px}
+.fc-airline{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.6)}
+.fc-num{font-size:11px;font-weight:700;color:#fff}
+.fc-status{font-size:9px;padding:1px 6px;border-radius:20px;font-weight:600}
+.fc-status.on-time{background:rgba(52,199,89,.2);color:#34c759}
+.fc-status.delayed{background:rgba(255,69,58,.2);color:#ff453a}
+.fc-status.scheduled{background:rgba(255,255,255,.1);color:rgba(255,255,255,.6)}
+.fc-route{display:flex;align-items:center;gap:5px;padding:3px 9px 7px}
+.fc-airport{text-align:center}
+.fc-iata{font-size:15px;font-weight:700;color:#fff;line-height:1}
+.fc-time{font-size:10px;color:rgba(255,255,255,.7);margin-top:1px}
+.fc-city{font-size:9px;color:rgba(255,255,255,.5);margin-top:1px;max-width:55px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fc-arrow{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px}
+.fc-arrow-line{height:1px;width:100%;background:rgba(255,255,255,.25);position:relative}
+.fc-arrow-line::after{content:'▶';position:absolute;right:-4px;top:-5px;font-size:8px;color:rgba(255,255,255,.4)}
+.fc-duration{font-size:9px;color:rgba(255,255,255,.45);margin-top:1px}
+.fc-actions{display:flex;gap:3px;padding:0 6px 6px;justify-content:flex-end}
+.fc-btn{padding:2px 7px;border-radius:4px;font-size:9px;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:all .15s}
+.fc-btn-refresh{background:rgba(255,255,255,.12);color:rgba(255,255,255,.8)}
+.fc-btn-refresh:hover{background:rgba(255,255,255,.2)}
+.fc-btn-track{background:rgba(255,255,255,.12);color:rgba(255,255,255,.8)}
+.fc-btn-track:hover{background:rgba(255,255,255,.2)}
+.fc-btn-del{background:rgba(255,69,58,.15);color:#ff453a}
+.fc-btn-del:hover{background:rgba(255,69,58,.3)}
+.fc-loading{font-size:10px;color:rgba(255,255,255,.5);padding:4px 9px;text-align:center}
+/* add flight button in day header */
+.add-flight-btn{font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(26,42,74,.12);border:1px solid rgba(26,42,74,.2);color:#1a2a4a;cursor:pointer;font-family:inherit;font-weight:600;transition:all .15s}
+.add-flight-btn:hover{background:rgba(26,42,74,.2)}
+
+/* ITINERARY MINI CARD */
+.ic{background:var(--surface);border:1px solid var(--b);border-radius:var(--rs);margin-bottom:4px;cursor:pointer;position:relative;transition:border-color .15s,box-shadow .15s;box-shadow:0 1px 4px rgba(0,0,0,.06);overflow:hidden}
+.ic:hover{border-color:var(--b2);box-shadow:var(--shadow)}
+.ic[data-s="yes"]{border-left:2px solid var(--yes)}
+.ic[data-s="maybe"]{border-left:2px solid var(--maybe)}
+.ic[data-s="no"]{border-left:2px solid var(--no)}
+.ic-img{width:100%;height:55px;object-fit:cover;display:block;background:var(--s2)}
+.ic-ph{width:100%;height:36px;background:var(--s3);display:flex;align-items:center;justify-content:center}
+.ic-body{padding:4px 7px 5px}
+.ic-nm{font-size:11px;font-weight:600;margin-bottom:1px;color:var(--t)}
+.ic-sub{font-size:10px;color:var(--t3);display:flex;gap:5px;align-items:center}
+.ic-rm{position:absolute;top:3px;right:3px;width:16px;height:16px;border-radius:50%;background:rgba(250,247,242,.92);border:none;color:var(--t3);cursor:pointer;font-size:9px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;z-index:2}
+.ic:hover .ic-rm{opacity:1}
+.add-day{width:140px;min-width:140px;min-height:70px;border:1.5px dashed var(--b);border-radius:var(--r);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;color:var(--t3);font-size:11px;background:transparent;font-family:inherit;transition:all .15s;flex-shrink:0}
+.add-day:hover{border-color:var(--acc);color:var(--acc);background:var(--accbg)}
+
+/* CARD PREVIEW MODAL */
+.cprev-ov{position:fixed;inset:0;background:rgba(44,40,32,.6);backdrop-filter:blur(4px);z-index:1500;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.cprev-ov.open{opacity:1;pointer-events:all}
+.cprev-modal{background:var(--surface);border:1px solid var(--b2);border-radius:14px;width:540px;max-width:95vw;max-height:88vh;overflow-y:auto;box-shadow:0 30px 80px rgba(0,0,0,.18);transform:translateY(10px);transition:transform .2s}
+.cprev-ov.open .cprev-modal{transform:translateY(0)}
+.cprev-img{width:100%;height:180px;object-fit:cover;display:block;background:var(--s2)}
+.cprev-ph{width:100%;height:80px;background:var(--s3);display:flex;align-items:center;justify-content:center}
+.cprev-body{padding:16px 20px}
+.cprev-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}
+.cprev-name{font-family:'Playfair Display',serif;font-size:20px;color:var(--t);flex:1;line-height:1.2}
+.cprev-meta{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px;align-items:center}
+.cprev-notes{font-size:13px;color:var(--t2);line-height:1.6;margin-bottom:10px;white-space:pre-wrap}
+.cprev-section{margin-bottom:10px}
+.cprev-slbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);margin-bottom:5px}
+.cprev-foot{padding:12px 20px;border-top:1px solid var(--b);display:flex;justify-content:flex-end;gap:7px}
+.cprev-imgs{display:flex;flex-wrap:wrap;gap:7px;margin-top:4px}
+.cprev-imgs img{width:100px;height:80px;object-fit:cover;border-radius:var(--rs);border:1px solid var(--b);cursor:pointer}
+
+/* MODAL */
+.ov{position:fixed;inset:0;background:rgba(44,40,32,.55);backdrop-filter:blur(4px);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.ov.open{opacity:1;pointer-events:all}
+.modal{background:var(--surface);border:1px solid var(--b2);border-radius:14px;width:540px;max-width:96vw;max-height:90vh;overflow-y:auto;box-shadow:0 30px 80px rgba(0,0,0,.18);transform:translateY(12px);transition:transform .2s}
+.ov.open .modal{transform:translateY(0)}
+.mh{display:flex;align-items:center;justify-content:space-between;padding:15px 20px;border-bottom:1px solid var(--b)}
+.mt{font-family:'Playfair Display',serif;font-size:19px;color:var(--acc)}
+.mb{padding:17px 20px;display:flex;flex-direction:column;gap:12px}
+.mf{padding:12px 20px;border-top:1px solid var(--b);display:flex;justify-content:flex-end;gap:7px}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--t3)}
+.fi,.fta,.fsel{background:var(--s2);border:1px solid var(--b);border-radius:var(--rs);padding:7px 10px;color:var(--t);font-size:13px;font-family:inherit;outline:none;transition:border-color .15s}
+.fi:focus,.fta:focus,.fsel:focus{border-color:var(--acc)}
+.fta{resize:vertical;min-height:55px}
+.fsel option{background:var(--surface)}
+.fr{display:flex;gap:9px}.fr .fg{flex:1}
+.sp{display:flex;gap:6px}
+.so{flex:1;padding:7px;border-radius:var(--rs);border:1px solid var(--b);cursor:pointer;font-size:12px;font-weight:500;text-align:center;background:transparent;font-family:inherit;transition:all .15s;color:var(--t3)}
+.so.yes.sel{background:var(--yesbg);border-color:var(--yes);color:var(--yes)}
+.so.maybe.sel{background:var(--maybebg);border-color:var(--maybe);color:var(--maybe)}
+.so.no.sel{background:var(--nobg);border-color:var(--no);color:var(--no)}
+.so:hover:not(.sel){border-color:var(--b2);color:var(--t)}
+.img-prev{width:100%;height:130px;object-fit:cover;border-radius:var(--rs);border:1px solid var(--b);display:block}
+.fh{font-size:11px;color:var(--t3)}.fh.load{color:var(--maybe)}.fh.ok{color:var(--yes)}.fh.err{color:var(--no)}
+.geo-hint{font-size:11px;padding:3px 0}.geo-hint.load{color:var(--maybe)}.geo-hint.ok{color:var(--yes)}.geo-hint.err{color:var(--no)}
+.divider{display:flex;align-items:center;gap:10px;color:var(--t3);font-size:11px}
+.divider::before,.divider::after{content:'';flex:1;border-top:1px solid var(--b)}
+.link-row{display:flex;gap:6px;align-items:center;margin-bottom:5px}
+.link-row .fi{flex:1}
+.link-label-w{width:120px;flex-shrink:0}
+.img-upload-row{display:flex;gap:7px;align-items:center;margin-top:4px}
+.img-upload-btn{padding:4px 9px;border-radius:var(--rs);font-size:11px;cursor:pointer;border:1px dashed var(--b2);background:transparent;color:var(--t2);font-family:inherit;transition:all .15s}
+.img-upload-btn:hover{border-color:var(--acc);color:var(--acc)}
+
+/* NOTES IMAGE section in modal */
+.notes-imgs-modal{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.nim-wrap{position:relative;width:72px;height:72px;border-radius:var(--rs);overflow:hidden;border:1px solid var(--b)}
+.nim-wrap img{width:100%;height:100%;object-fit:cover}
+.nim-del{position:absolute;top:2px;right:2px;width:15px;height:15px;border-radius:50%;background:rgba(44,40,32,.7);border:none;color:#fff;cursor:pointer;font-size:9px;display:flex;align-items:center;justify-content:center}
+.nim-add{width:72px;height:72px;border:1.5px dashed var(--b2);border-radius:var(--rs);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t3);font-size:22px;transition:all .15s}
+.nim-add:hover{border-color:var(--acc);color:var(--acc);background:var(--accbg)}
+.notes-img-drop{border:1.5px dashed var(--b2);border-radius:var(--rs);padding:12px;text-align:center;font-size:11px;color:var(--t3);cursor:pointer;transition:all .15s;margin-top:6px}
+.notes-img-drop.over{border-color:var(--acc);background:var(--accbg);color:var(--acc)}
+
+/* CATEGORY MODAL */
+.cat-row{display:flex;align-items:center;gap:9px;padding:7px 10px;background:var(--s2);border:1px solid var(--b);border-radius:var(--rs)}
+.cat-row+.cat-row{margin-top:5px}
+.cat-icon-sm{flex-shrink:0}
+.cat-nm{flex:1;font-size:13px}
+.cat-col-dot{width:13px;height:13px;border-radius:50%;flex-shrink:0;border:1px solid var(--b)}
+.cat-edit-btn{background:none;border:none;color:var(--t3);cursor:pointer;font-size:11px;padding:2px 6px;border-radius:4px;border:1px solid var(--b);font-family:inherit}
+.cat-edit-btn:hover{border-color:var(--acc);color:var(--acc)}
+.cat-del{background:none;border:none;color:var(--t3);cursor:pointer;font-size:13px;padding:2px 4px;border-radius:4px}
+.cat-del:hover{background:var(--nobg);color:var(--no)}
+
+/* ICON PICKER */
+.icon-picker-wrap{display:flex;flex-direction:column;gap:8px}
+.icon-grid{display:grid;grid-template-columns:repeat(8,36px);gap:4px;max-height:200px;overflow-y:auto;padding:4px}
+.icon-grid::-webkit-scrollbar{width:4px}
+.icon-grid::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+.ig-btn{width:36px;height:36px;border-radius:50%;background:#f5f3ee;border:1.5px solid var(--b);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s}
+.ig-btn:hover,.ig-btn.sel{border-color:var(--acc);background:var(--accbg)}
+.ig-btn svg{width:16px;height:16px;fill:none;stroke:#4a4540;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* PDF VIEWER */
+.pdf-ov{position:fixed;inset:0;background:rgba(44,40,32,.7);backdrop-filter:blur(4px);z-index:2000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.pdf-ov.open{opacity:1;pointer-events:all}
+.pdf-modal{background:var(--surface);border:1px solid var(--b2);border-radius:14px;width:82vw;height:88vh;max-width:920px;display:flex;flex-direction:column;box-shadow:0 30px 80px rgba(0,0,0,.2);transform:translateY(12px);transition:transform .2s;overflow:hidden}
+.pdf-ov.open .pdf-modal{transform:translateY(0)}
+.pdf-head{display:flex;align-items:center;justify-content:space-between;padding:11px 17px;border-bottom:1px solid var(--b);flex-shrink:0}
+.pdf-title{font-size:13px;font-weight:600;color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pdf-frame{flex:1;border:none;background:var(--s2)}
+
+/* IMAGE LIGHTBOX */
+.lbox-ov{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:3000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.lbox-ov.open{opacity:1;pointer-events:all}
+.lbox-img{max-width:90vw;max-height:90vh;border-radius:var(--r);object-fit:contain}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--t);border-radius:var(--r);padding:9px 18px;font-size:12px;color:#fff;z-index:9999;transition:transform .25s,opacity .25s;opacity:0;white-space:nowrap;pointer-events:none}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+a{color:var(--acc);text-decoration:none}a:hover{text-decoration:underline}
+
+/* TRIP MANAGER */
+.trip-select{background:var(--s2);border:1px solid var(--b);border-radius:var(--rs);padding:5px 8px;color:var(--t);font-size:12px;font-family:inherit;outline:none;max-width:160px;cursor:pointer;transition:border-color .15s}
+.trip-select:focus{border-color:var(--acc)}
+.trip-list{display:flex;flex-direction:column;gap:5px}
+.trip-item{display:flex;align-items:center;gap:8px;padding:8px 11px;background:var(--s2);border:1px solid var(--b);border-radius:var(--rs)}
+.trip-item.active{border-color:var(--acc);background:var(--accbg)}
+.trip-item-name{flex:1;font-size:13px;font-weight:500;cursor:pointer}
+.trip-item-name:hover{color:var(--acc)}
+.trip-item-meta{font-size:10px;color:var(--t3)}
+.export-hint{font-size:11px;color:var(--t3);line-height:1.6;padding:8px 10px;background:var(--s2);border-radius:var(--rs);border:1px solid var(--b)}
+
+/* MAP SEARCH */
+.map-search-bar{display:flex;gap:0;padding:8px 10px;border-bottom:1px solid var(--b);background:var(--surface);flex-shrink:0}
+.map-search-input{flex:1;background:var(--s2);border:1px solid var(--b);border-right:none;border-radius:var(--rs) 0 0 var(--rs);padding:6px 10px;color:var(--t);font-size:12px;font-family:inherit;outline:none;transition:border-color .15s}
+.map-search-input:focus{border-color:var(--acc)}
+.map-search-btn{background:var(--acc);border:none;border-radius:0 var(--rs) var(--rs) 0;padding:0 10px;cursor:pointer;color:#fff;display:flex;align-items:center;transition:background .15s;flex-shrink:0}
+.map-search-btn:hover{background:var(--acc2)}
+#mapSearchResults{position:relative;z-index:500;flex-shrink:0}
+.map-search-result{padding:7px 12px;font-size:12px;color:var(--t2);cursor:pointer;border-bottom:1px solid var(--b);background:var(--surface);transition:background .15s}
+.map-search-result:hover{background:var(--s2);color:var(--t)}
+.map-search-result strong{color:var(--t);font-weight:600}
+.gm-style .gm-style-iw-c{border-radius:var(--r)!important}
+</style>
+</head>
+<body>
+
+<!-- SETUP OVERLAY -->
+<div class="setup-ov" id="setupOv">
+  <div class="setup-box">
+    <div class="setup-logo">triply</div>
+    <div class="setup-sub">Enter your API keys to get started. These are saved privately on your device only — never shared.</div>
+    <div class="setup-field"><label class="setup-label">Supabase URL</label><input class="setup-input" id="setupSbUrl" placeholder="https://xxxxx.supabase.co"></div>
+    <div class="setup-field"><label class="setup-label">Supabase Publishable Key</label><input class="setup-input" id="setupSbKey" placeholder="sb_publishable_..."></div>
+    <div class="setup-field"><label class="setup-label">Google Maps API Key</label><input class="setup-input" id="setupGmKey" placeholder="AIzaSy..."></div>
+    <div class="setup-migrate" id="setupMigrate">✓ <strong>Existing trip data found</strong> — your cards, days and trips will be migrated automatically when you click Launch.</div>
+    <button class="setup-btn" onclick="launchApp()">Launch Triply</button>
+    <div class="setup-note">You only need to do this once. Your keys are stored locally and never sent anywhere except the services they belong to.</div>
+  </div>
+</div>
+
+<header>
+  <div class="logo">triply <span class="sync-dot" id="syncDot" title="Sync status"></span></div>
+  <div class="hdr-mid">
+    <select class="trip-select" id="tripSelect" onchange="switchTrip(this.value)" title="Switch trip"></select>
+    <span class="date-sep">from</span>
+    <input class="date-input" type="date" id="startDate">
+    <span class="date-sep">to</span>
+    <input class="date-input" type="date" id="endDate">
+    <button class="gen-btn" onclick="generateDays()">Generate Days</button>
+  </div>
+  <div class="hdr-r">
+    <button class="btn btn-g btn-s" onclick="openTripManager()">🗂 Trips</button>
+    <div class="panel-toggles">
+      <button class="ptog" id="tog-pit"  onclick="togglePanel('pit')">Itinerary</button>
+      <button class="ptog" id="tog-pres" onclick="togglePanel('pres')">Research</button>
+      <button class="ptog" id="tog-pmap" onclick="togglePanel('pmap')">Map</button>
+    </div>
+    <button class="btn btn-g btn-s" onclick="openCatModal()">⚙ Categories</button>
+    <button class="btn btn-g btn-s" onclick="openFlightModal()">✈ Add Flight</button>
+    <button class="btn btn-p btn-s" onclick="openAddCard()">+ Add Place</button>
+  </div>
+</header>
+
+<div class="app" id="appBody">
+  <div class="panel" id="pit">
+    <div class="ph"><span class="plbl">Itinerary</span><div class="pact"><button class="ibtn" onclick="addDay()">+</button></div></div>
+    <div id="itin-body"><button class="add-day" onclick="addDay()"><span style="font-size:20px">＋</span><span>Add Day</span></button></div>
+  </div>
+  <div class="resize-handle" id="rh1"></div>
+  <div class="panel" id="pres">
+    <div class="ph"><span class="plbl">Research</span><div class="pact"><button class="ibtn" onclick="openAddCard()">+</button></div></div>
+    <div class="filter-row" id="filterRow"></div>
+    <div id="res-body"></div>
+  </div>
+  <div class="resize-handle" id="rh2"></div>
+  <div class="panel" id="pmap">
+    <div class="ph">
+      <span class="plbl">Map</span>
+      <div class="pact">
+        <button class="ibtn" id="mapFilterBtn" onclick="cycleMapFilter()" title="Filter by status">All</button>
+        <button class="ibtn" onclick="fitMap()" title="Fit to pins">⊡</button>
+      </div>
+    </div>
+    <div class="map-search-bar" id="triplySearchBar">
+      <input class="map-search-input" id="mapSearchInput" placeholder="Search location…" onkeydown="if(event.key==='Enter')searchMapLocation()">
+      <button class="map-search-btn" onclick="searchMapLocation()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      </button>
+    </div>
+    <div id="mapSearchResults"></div>
+    <div class="map-view-toggles">
+      <button class="map-view-btn on" id="mvTriply" onclick="setMapMode('triply')">Triply</button>
+      <button class="map-view-btn" id="mvGoogle" onclick="setMapMode('google')" title="Open current location in Google Maps">↗ Google Maps</button>
+    </div>
+    <div id="map" style="flex:1"></div>
+  </div>
+</div>
+
+<!-- ADD/EDIT CARD MODAL -->
+<div class="ov" id="cardOv">
+  <div class="modal">
+    <div class="mh"><span class="mt" id="cmTitle">Add Place</span><button class="ibtn" onclick="closeCardModal()">✕</button></div>
+    <div class="mb">
+      <div class="fg">
+        <label class="fl">Main Link — paste URL to auto-fetch title &amp; image</label>
+        <input class="fi" id="fLink" placeholder="https://…" oninput="scheduleFetch()">
+        <span class="fh" id="fHint"></span>
+      </div>
+      <div class="fg">
+        <label class="fl">Image</label>
+        <div id="iPrevWrap" style="display:none;margin-bottom:6px"><img class="img-prev" id="iPrev" src="" alt=""></div>
+        <div class="img-upload-row">
+          <input class="fi" id="fImgUrl" placeholder="Paste image URL…" style="flex:1" oninput="setImgOv()">
+          <span style="font-size:11px;color:var(--t3)">or</span>
+          <input type="file" id="imgFileInput" accept="image/*" style="display:none" onchange="handleImgUpload(event)">
+          <button class="img-upload-btn" onclick="document.getElementById('imgFileInput').click()">📷 Upload</button>
+        </div>
+      </div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Place name</label><input class="fi" id="fName" placeholder="e.g. Loch Ness Viewpoint"></div>
+        <div class="fg"><label class="fl">Category</label><select class="fsel" id="fCat"></select></div>
+      </div>
+      <div class="fg">
+        <label class="fl">Address <span style="font-weight:300;text-transform:none">(auto-pins on map)</span></label>
+        <div style="display:flex;gap:7px">
+          <input class="fi" id="fAddr" placeholder="e.g. Glencoe, Scotland" style="flex:1">
+          <button class="btn btn-g btn-s" onclick="geocodeAddr()">📍 Find</button>
+        </div>
+        <span class="geo-hint" id="geoHint"></span>
+      </div>
+      <div class="divider">or enter coordinates manually</div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Latitude</label><input class="fi" id="fLat" placeholder="e.g. 56.6800"></div>
+        <div class="fg"><label class="fl">Longitude</label><input class="fi" id="fLng" placeholder="e.g. -5.1000"></div>
+      </div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Cost</label><input class="fi" id="fCost" placeholder="e.g. £45 / free"></div>
+        <div class="fg"><label class="fl">Status</label>
+          <div class="sp">
+            <button class="so yes"       onclick="pickSt('yes')"  >✓ Yes</button>
+            <button class="so maybe sel" onclick="pickSt('maybe')">? Maybe</button>
+            <button class="so no"        onclick="pickSt('no')"   >✕ No</button>
+          </div>
+        </div>
+      </div>
+      <div class="fg"><label class="fl">Notes</label><textarea class="fta" id="fNotes" placeholder="Opening hours, tips, reminders…"></textarea></div>
+      <div class="fg">
+        <label class="fl">Notes Images</label>
+        <div class="notes-imgs-modal" id="notesImgsModal"></div>
+        <!-- drag & drop zone -->
+        <div id="notesImgDrop" class="notes-img-drop"
+          ondragover="event.preventDefault();this.classList.add('over')"
+          ondragleave="this.classList.remove('over')"
+          ondrop="handleNotesImgDrop(event)">
+          <span>Drag &amp; drop images here</span>
+        </div>
+        <!-- url input -->
+        <div style="display:flex;gap:7px;margin-top:6px;align-items:center">
+          <input class="fi" id="notesImgUrl" placeholder="Or paste an image URL…" style="flex:1;font-size:12px">
+          <button class="btn btn-g btn-s" onclick="addNotesImgFromUrl()">Add</button>
+        </div>
+        <!-- file upload -->
+        <input type="file" id="notesImgInput" accept="image/*" multiple style="display:none" onchange="handleNotesImg(event)">
+        <button class="img-upload-btn" style="margin-top:6px" onclick="document.getElementById('notesImgInput').click()">📷 Upload from desktop</button>
+      </div>
+      <div class="fg">
+        <label class="fl">Extra Links</label>
+        <div id="extraLinksList"></div>
+        <button class="btn btn-g btn-s" style="align-self:flex-start;margin-top:4px" onclick="addLinkRow()">+ Add link</button>
+      </div>
+      <div class="fg">
+        <label class="fl">PDF Attachments</label>
+        <div id="attList" class="att-list-card"></div>
+        <div style="display:flex;align-items:center;gap:7px;margin-top:4px">
+          <input type="file" id="attFileInput" accept=".pdf" style="display:none" onchange="handleAttUpload(event)">
+          <button class="img-upload-btn" onclick="document.getElementById('attFileInput').click()">📎 Attach PDF</button>
+          <span style="font-size:11px;color:var(--t3)" id="attHint"></span>
+        </div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-g" onclick="closeCardModal()">Cancel</button>
+      <button class="btn btn-p" onclick="saveCard()">Save Place</button>
+    </div>
+  </div>
+</div>
+
+<!-- CATEGORY MODAL -->
+<div class="ov" id="catOv">
+  <div class="modal">
+    <div class="mh"><span class="mt">Manage Categories</span><button class="ibtn" onclick="closeCatModal()">✕</button></div>
+    <div class="mb">
+      <p style="font-size:12px;color:var(--t3)">Each category gets its own icon and colour on the map. Click <strong>Edit</strong> to change icon or colour after creating.</p>
+      <div id="catList"></div>
+      <div style="margin-top:10px;padding:10px;background:var(--s2);border:1px solid var(--b);border-radius:var(--r)" id="newCatForm">
+        <div style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">New Category</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <div id="newCatPreview" style="width:36px;height:36px;border-radius:50%;background:#f5f3ee;border:1.5px solid #4a4540;display:flex;align-items:center;justify-content:center;flex-shrink:0"></div>
+          <div style="flex:1">
+            <div style="font-size:11px;color:var(--t3);margin-bottom:4px">Pick a built-in icon or upload your own image</div>
+            <label class="img-upload-btn" style="display:inline-flex;align-items:center;gap:4px;cursor:pointer">
+              📷 Upload custom icon
+              <input type="file" id="nCatImgInput" accept="image/*" style="display:none" onchange="handleNewCatImg(event)">
+            </label>
+          </div>
+        </div>
+        <div class="icon-picker-wrap">
+          <div class="icon-grid" id="iconGrid"></div>
+        </div>
+        <div style="display:flex;gap:7px;margin-top:8px;align-items:center">
+          <input class="fi" id="nCatNm" placeholder="Category name" style="flex:1">
+          <div style="display:flex;align-items:center;gap:5px">
+            <label style="font-size:11px;color:var(--t3)">Colour</label>
+            <input type="color" id="nCatCl" value="#4a4540" style="width:34px;height:34px;border:1px solid var(--b);border-radius:var(--rs);background:var(--s2);cursor:pointer;padding:2px">
+          </div>
+          <button class="btn btn-p btn-s" onclick="addCat()">Add</button>
+        </div>
+      </div>
+    </div>
+    <div class="mf"><button class="btn btn-p" onclick="closeCatModal()">Done</button></div>
+  </div>
+</div>
+
+<!-- EDIT CATEGORY MODAL -->
+<div class="ov" id="editCatOv">
+  <div class="modal" style="width:460px">
+    <div class="mh"><span class="mt" id="editCatTitle">Edit Category</span><button class="ibtn" onclick="closeEditCat()">✕</button></div>
+    <div class="mb">
+      <div class="fg"><label class="fl">Name</label><input class="fi" id="ecName" placeholder="Category name"></div>
+      <div class="fg">
+        <label class="fl">Icon</label>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <div id="editCatPreview" style="width:36px;height:36px;border-radius:50%;background:#f5f3ee;border:1.5px solid #4a4540;display:flex;align-items:center;justify-content:center;flex-shrink:0"></div>
+          <label class="img-upload-btn" style="display:inline-flex;align-items:center;gap:4px;cursor:pointer">
+            📷 Upload custom icon
+            <input type="file" id="ecImgInput" accept="image/*" style="display:none" onchange="handleEditCatImg(event)">
+          </label>
+          <button class="btn btn-g btn-s" onclick="clearEditCatCustomImg()">Use built-in icon</button>
+        </div>
+        <div class="icon-grid" id="editIconGrid"></div>
+      </div>
+      <div class="fg">
+        <label class="fl">Colour (used on map pin border)</label>
+        <div style="display:flex;align-items:center;gap:10px">
+          <input type="color" id="ecColor" style="width:40px;height:40px;border:1px solid var(--b);border-radius:var(--rs);background:var(--s2);cursor:pointer;padding:2px">
+          <span style="font-size:12px;color:var(--t3)">This colour appears on the map pin for this category</span>
+        </div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-g" onclick="closeEditCat()">Cancel</button>
+      <button class="btn btn-p" onclick="saveEditCat()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- FLIGHT MODAL -->
+<div class="ov" id="flightOv">
+  <div class="modal" style="width:440px">
+    <div class="mh"><span class="mt">Add Flight</span><button class="ibtn" onclick="closeFlightModal()">✕</button></div>
+    <div class="mb">
+      <!-- API key notice -->
+      <div id="flightApiNotice" style="background:var(--accbg);border:1px solid var(--b2);border-radius:var(--rs);padding:10px 12px;font-size:11px;color:var(--t2);line-height:1.6">
+        <div id="apiKeyStored" style="display:none">
+          ✓ <strong>Airlabs API key saved</strong>
+          <a href="#" onclick="showApiKeyInput();return false;" style="margin-left:8px;font-size:10px">Change key</a>
+        </div>
+        <div id="apiKeyInput">
+          <strong>Airlabs API key</strong> — sign up free at
+          <a href="https://airlabs.co" target="_blank">airlabs.co</a> and paste your key below. Without it you can still add flights manually.
+          <div style="display:flex;gap:7px;margin-top:7px">
+            <input class="fi" id="flightApiKey" placeholder="Your Airlabs API key…" style="flex:1;font-size:12px" oninput="saveApiKey()">
+          </div>
+        </div>
+      </div>
+      <!-- Flight number lookup -->
+      <div class="fg">
+        <label class="fl">Flight number</label>
+        <div style="display:flex;gap:7px">
+          <input class="fi" id="fFlightNum" placeholder="e.g. BA286" style="flex:1;text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
+          <input class="date-input" type="date" id="fFlightDate" style="flex-shrink:0">
+          <button class="btn btn-p btn-s" onclick="lookupFlight()">Look up</button>
+        </div>
+        <span class="fh" id="flightLookupHint"></span>
+      </div>
+      <div class="divider">Flight details</div>
+      <!-- Route -->
+      <div class="fr">
+        <div class="fg">
+          <label class="fl">From (IATA code)</label>
+          <input class="fi" id="fFrom" placeholder="e.g. LHR" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
+        </div>
+        <div class="fg">
+          <label class="fl">To (IATA code)</label>
+          <input class="fi" id="fTo" placeholder="e.g. JFK" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
+        </div>
+      </div>
+      <div class="fr">
+        <div class="fg">
+          <label class="fl">Departure time</label>
+          <input class="fi" id="fDep" placeholder="e.g. 09:45">
+        </div>
+        <div class="fg">
+          <label class="fl">Arrival time</label>
+          <input class="fi" id="fArr" placeholder="e.g. 12:30">
+        </div>
+      </div>
+      <div class="fr">
+        <div class="fg">
+          <label class="fl">Airline</label>
+          <input class="fi" id="fAirline" placeholder="e.g. British Airways">
+        </div>
+        <div class="fg">
+          <label class="fl">From city</label>
+          <input class="fi" id="fFromCity" placeholder="e.g. London">
+        </div>
+        <div class="fg">
+          <label class="fl">To city</label>
+          <input class="fi" id="fToCity" placeholder="e.g. New York">
+        </div>
+      </div>
+      <div class="fg">
+        <label class="fl">Add to day</label>
+        <select class="fsel" id="fFlightDay"></select>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-g" onclick="closeFlightModal()">Cancel</button>
+      <button class="btn btn-p" onclick="saveFlight()">Add Flight</button>
+    </div>
+  </div>
+</div>
+
+<!-- CARD PREVIEW -->
+<div class="cprev-ov" id="cprevOv">
+  <div class="cprev-modal" id="cprevModal"></div>
+</div>
+
+<!-- PDF VIEWER -->
+<div class="pdf-ov" id="pdfOv">
+  <div class="pdf-modal">
+    <div class="pdf-head"><span class="pdf-title" id="pdfTitle">Document</span><button class="ibtn" onclick="closePdf()">✕</button></div>
+    <iframe class="pdf-frame" id="pdfFrame" src=""></iframe>
+  </div>
+</div>
+
+<!-- IMAGE LIGHTBOX -->
+<div class="lbox-ov" id="lboxOv" onclick="closeLbox()">
+  <img class="lbox-img" id="lboxImg" src="" alt="">
+</div>
+
+<!-- TRIP MANAGER MODAL -->
+<div class="ov" id="tripOv">
+  <div class="modal" style="width:500px">
+    <div class="mh"><span class="mt">My Trips</span><button class="ibtn" onclick="closeOv('tripOv')">✕</button></div>
+    <div class="mb">
+      <div class="trip-list" id="tripList"></div>
+      <div style="display:flex;gap:7px;margin-top:8px">
+        <input class="fi" id="newTripName" placeholder="New trip name…" style="flex:1" onkeydown="if(event.key==='Enter')createTrip()">
+        <button class="btn btn-p btn-s" onclick="createTrip()">+ New Trip</button>
+      </div>
+      <div class="divider" style="margin-top:4px">Export &amp; Import</div>
+      <div class="export-hint">
+        <strong>Export</strong> saves the current trip as a <code>.triply</code> file on your computer — use this to back up trips or share them.<br>
+        <strong>Import</strong> loads a previously exported <code>.triply</code> file back in as a trip.
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn btn-g btn-s" onclick="exportCurrentTrip()">⬇ Export current trip</button>
+        <label class="btn btn-g btn-s" style="cursor:pointer">
+          ⬆ Import trip file
+          <input type="file" accept=".triply,.json" style="display:none" onchange="importTrip(event)">
+        </label>
+      </div>
+    </div>
+    <div class="mf"><button class="btn btn-p" onclick="closeOv('tripOv')">Done</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════
+//  SVG ICONS LIBRARY
+// ══════════════════════════════════════════
+const ICONS = {
+  tent:      `<path d="M3 20L12 4l9 16H3z"/><path d="M12 4v16M8 20l4-8 4 8"/>`,
+  boot:      `<path d="M3 18h14a2 2 0 000-4h-2l-2-6H7L5 14H3a1 1 0 000 2v2z"/>`,
+  kayak:     `<path d="M2 12h20M12 2v20M6 7l-4 5 4 5M18 7l4 5-4 5"/>`,
+  fork:      `<path d="M12 2v20M8 2v6a4 4 0 004 4 4 4 0 004-4V2"/>`,
+  camera:    `<rect x="2" y="7" width="20" height="14" rx="2"/><circle cx="12" cy="14" r="3"/><path d="M16 7l-1.5-2h-5L8 7"/>`,
+  swim:      `<path d="M2 14c2-2 4-2 6 0s4 2 6 0 4-2 6 0M2 18c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><circle cx="12" cy="8" r="3"/>`,
+  bike:      `<circle cx="6" cy="16" r="3"/><circle cx="18" cy="16" r="3"/><path d="M6 16l4-8h4l2 4M10 8l2 8M14 12h4"/>`,
+  deer:      `<path d="M12 2c0 2-2 4-2 6h4c0-2-2-4-2-6zM8 8l-2-4M16 8l2-4M10 14H8l-2 6h12l-2-6h-2M10 14v-2M14 14v-2M10 12c0-1 4-1 4 0"/>`,
+  mountain:  `<path d="M2 20L8 8l4 6 2-3 6 9H2z"/>`,
+  wave:      `<path d="M2 6c2-3 4-3 6 0s4 3 6 0 4-3 6 0M2 12c2-3 4-3 6 0s4 3 6 0 4-3 6 0M2 18c2-3 4-3 6 0s4 3 6 0 4-3 6 0"/>`,
+  fish:      `<path d="M6 12C6 8 10 4 18 4l-2 8 2 8C10 20 6 16 6 12z"/><path d="M18 4l2-2M18 20l2 2"/><circle cx="10" cy="12" r="1"/>`,
+  ski:       `<circle cx="12" cy="5" r="2"/><path d="M5 20l5-8 3 2 4-6M3 20h18"/>`,
+  surf:      `<path d="M2 18C6 14 10 12 20 6l-4 12H2z"/><path d="M20 6l2-4"/>`,
+  compass:   `<circle cx="12" cy="12" r="10"/><path d="M16.24 7.76l-4.95 4.95-2.83 2.83 4.95-4.95 2.83-2.83z"/><path d="M7.76 16.24l2.83-2.83"/>`,
+  map:       `<path d="M1 6l7-3 8 4 7-3v15l-7 3-8-4-7 3V6z"/><path d="M8 3v15M16 7v15"/>`,
+  tree:      `<path d="M12 2L4 12h4l-3 5h7v5h2v-5h7l-3-5h4L12 2z"/>`,
+  flower:    `<circle cx="12" cy="12" r="3"/><path d="M12 2a3 3 0 010 6 3 3 0 010-6zM12 16a3 3 0 010 6 3 3 0 010-6zM2 12a3 3 0 016 0 3 3 0 01-6 0zM16 12a3 3 0 016 0 3 3 0 01-6 0zM5 5a3 3 0 014 4 3 3 0 01-4-4zM15 5a3 3 0 014 4 3 3 0 01-4-4zM5 15a3 3 0 014 4 3 3 0 01-4-4zM15 15a3 3 0 014 4 3 3 0 01-4-4z"/>`,
+  sun:       `<circle cx="12" cy="12" r="5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/>`,
+  star:      `<polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>`,
+  home:      `<path d="M3 12L12 3l9 9M5 10v10h5v-5h4v5h5V10"/><path d="M12 3v7"/>`,
+  pin:       `<path d="M12 2a7 7 0 017 7c0 5-7 13-7 13S5 14 5 9a7 7 0 017-7z"/><circle cx="12" cy="9" r="2.5"/>`,
+  car:       `<rect x="1" y="11" width="22" height="9" rx="2"/><path d="M5 11l2-5h10l2 5"/><circle cx="7" cy="20" r="1"/><circle cx="17" cy="20" r="1"/>`,
+  train:     `<rect x="4" y="2" width="16" height="16" rx="2"/><path d="M4 10h16M12 2v8M8 18l-2 4M16 18l2 4"/><circle cx="9" cy="14" r="1"/><circle cx="15" cy="14" r="1"/>`,
+  plane:     `<path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>`,
+  ship:      `<path d="M2 21l2-9h16l2 9H2zM6 12V5h12v7"/><path d="M12 5V2M9 2h6"/>`,
+  coffee:    `<path d="M3 8h14v8a4 4 0 01-4 4H7a4 4 0 01-4-4V8z"/><path d="M17 10h2a2 2 0 010 4h-2"/>`,
+  wine:      `<path d="M6 2h12l-4 8a4 4 0 01-4 0L6 2zM12 10v10M8 22h8"/>`,
+  castle:    `<path d="M2 20V8h4V4h2v4h4V4h2v4h4v12H2zM2 12h20M10 20v-6h4v6"/>`,
+  church:    `<path d="M12 2v6M9 5h6M5 8h14v12H5V8z"/><path d="M9 20v-6h6v6"/>`,
+  museum:    `<path d="M2 20h20M4 20V10h16v10M2 10l10-8 10 8M10 15h4v5h-4z"/>`,
+  bridge:    `<path d="M2 18h20M2 18V12h4v6M18 18V12h4v6M10 18V10M14 18V10M10 10C10 7 14 7 14 10"/>`,
+  lighthouse:`<path d="M10 2h4l2 10H8L10 2zM8 12v8h8v-8M6 20h12M12 2v2"/>`,
+  tent2:     `<path d="M2 20L12 4l10 16H2z"/><path d="M9 20l3-8 3 8"/>`,
+  campfire:  `<path d="M12 2c0 4-4 6-4 10a4 4 0 008 0c0-4-4-6-4-10z"/><path d="M8 22h8M12 18v4"/>`,
+  waterfall: `<path d="M4 2v8c0 4 4 6 4 10M12 2v6c0 5 4 7 4 12M20 4v6c0 5-4 7-4 12"/>`,
+  cave:      `<path d="M2 20C2 12 6 6 12 6s10 6 10 14H2z"/><path d="M8 20c0-4 8-4 8 0"/>`,
+  binoculars:`<circle cx="7" cy="14" r="4"/><circle cx="17" cy="14" r="4"/><path d="M7 10V6a2 2 0 014 0v4M17 10V6a2 2 0 00-4 0v4M11 14h2"/>`,
+  picnic:    `<path d="M3 11h18M12 11V4M8 11V7M16 11V7"/><rect x="2" y="14" width="20" height="2" rx="1"/><path d="M5 16v4M19 16v4"/>`,
+};
+
+const ICON_KEYS = Object.keys(ICONS);
+
+function svgIcon(key, size=16, color='#4a4540'){
+  const paths = ICONS[key] || ICONS['pin'];
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
+}
+
+function iconCircleHtml(key, color='#4a4540', size=28, customImg=''){
+  const inner = customImg
+    ? `<img src="${customImg}" style="width:${Math.round(size*0.65)}px;height:${Math.round(size*0.65)}px;border-radius:50%;object-fit:cover;">`
+    : svgIcon(key, Math.round(size*0.52), color);
+  return `<div class="cat-icon-circle" style="width:${size}px;height:${size}px;border-color:${color}">${inner}</div>`;
+}
+
+// ══════════════════════════════════════════
+//  MULTI-TRIP STORAGE
+// ══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+//  CONFIG & SETUP
+// ═══════════════════════════════════════════════════════
+const CFG_KEY = 'triply_config';
+let cfg = { sbUrl:'', sbKey:'', gmKey:'' };
+function loadCfg(){ try{ const d=localStorage.getItem(CFG_KEY); if(d) cfg=JSON.parse(d); }catch(e){} }
+function saveCfg(){ localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); }
+
+function checkSetup(){
+  loadCfg();
+  const legacy = localStorage.getItem('triply_v6');
+  if(legacy) document.getElementById('setupMigrate').style.display='block';
+  if(cfg.sbUrl && cfg.sbKey && cfg.gmKey){
+    document.getElementById('setupOv').classList.add('hidden');
+    bootApp();
+  }
+  // else setup screen stays visible
+}
+function launchApp(){
+  const sbUrl=document.getElementById('setupSbUrl').value.trim();
+  const sbKey=document.getElementById('setupSbKey').value.trim();
+  const gmKey=document.getElementById('setupGmKey').value.trim();
+  if(!sbUrl||!sbKey||!gmKey){ showToast('Please fill in all three keys'); return; }
+  cfg={sbUrl,sbKey,gmKey}; saveCfg();
+  document.getElementById('setupOv').classList.add('hidden');
+  bootApp();
+}
+
+// ═══════════════════════════════════════════════════════
+//  SUPABASE CLIENT
+// ═══════════════════════════════════════════════════════
+const sb={
+  async req(method,path,body){
+    const res=await fetch(cfg.sbUrl+'/rest/v1/'+path,{method,headers:{'apikey':cfg.sbKey,'Authorization':'Bearer '+cfg.sbKey,'Content-Type':'application/json','Prefer':method==='POST'?'return=representation':'return=minimal'},body:body?JSON.stringify(body):undefined});
+    if(!res.ok){const t=await res.text();throw new Error(t);}
+    const ct=res.headers.get('content-type')||'';return ct.includes('json')?res.json():null;
+  },
+  get(p){return this.req('GET',p);},post(p,b){return this.req('POST',p,b);},patch(p,b){return this.req('PATCH',p,b);},delete(p){return this.req('DELETE',p);}
+};
+const BUCKET='triply-files';
+async function sbUploadFile(fileName,dataUrl){
+  const arr=dataUrl.split(','),mime=arr[0].match(/:(.*?);/)[1];
+  const bstr=atob(arr[1]);let n=bstr.length;const u8=new Uint8Array(n);while(n--)u8[n]=bstr.charCodeAt(n);
+  const blob=new Blob([u8],{type:mime}),ext=mime.split('/')[1]||'bin';
+  const path=`${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const res=await fetch(`${cfg.sbUrl}/storage/v1/object/${BUCKET}/${path}`,{method:'POST',headers:{'apikey':cfg.sbKey,'Authorization':'Bearer '+cfg.sbKey,'Content-Type':mime},body:blob});
+  if(!res.ok)throw new Error(await res.text());
+  return`${cfg.sbUrl}/storage/v1/object/public/${BUCKET}/${path}`;
+}
+async function uploadFileToStorage(dataUrl,fileName){
+  try{return await sbUploadFile(fileName,dataUrl);}catch(e){console.warn('Storage upload failed:',e);return dataUrl;}
+}
+
+// ═══════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════
+const DEFAULT_CATS = [
+  {id:'c1',name:'Accommodation',icon:'tent',   color:'#8b6914'},
+  {id:'c2',name:'Hiking',       icon:'boot',   color:'#2d7a52'},
+  {id:'c3',name:'Kayaking',     icon:'kayak',  color:'#1a7a9a'},
+  {id:'c4',name:'Food & Drink', icon:'fork',   color:'#a06520'},
+  {id:'c5',name:'Sightseeing',  icon:'camera', color:'#6a4a9a'},
+  {id:'c6',name:'Swimming',     icon:'swim',   color:'#1a8a8a'},
+  {id:'c7',name:'Cycling',      icon:'bike',   color:'#9a4a20'},
+  {id:'c8',name:'Wildlife',     icon:'deer',   color:'#4a7a20'},
+];
+function blankTrip(name){
+  return {id:uid(),tripName:name||'New Trip',startDate:'',endDate:'',cards:[],days:[],flights:[],cats:JSON.parse(JSON.stringify(DEFAULT_CATS)),panelWidths:{pit:400,pmap:380},panelVisible:{pit:true,pres:true,pmap:true}};
+}
+let allTrips={}, activeId=null, state=null, pendingAtts={};
+
+// ═══════════════════════════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════════════════════════
+async function bootApp(){
+  setSyncStatus('saving');
+  try{
+    await loadAllTrips();
+    await migrateLegacy();
+    loadGoogleMaps();
+    document.getElementById('startDate').addEventListener('change',e=>{state.startDate=e.target.value;autoSave();});
+    document.getElementById('endDate').addEventListener('change',e=>{state.endDate=e.target.value;autoSave();});
+    applyPanelState();initResizeHandles();buildIconGrids();renderAll();
+    setSyncStatus('saved');
+  }catch(e){console.error('Boot error:',e);setSyncStatus('error');showToast('Could not connect — check your Supabase keys');}
+}
+
+async function migrateLegacy(){
+  const raw=localStorage.getItem('triply_v6'); if(!raw) return;
+  showToast('Migrating your existing data…');
+  try{
+    const parsed=JSON.parse(raw);let trips={};
+    if(parsed.trips){trips=parsed.trips;if(parsed.atts)Object.assign(pendingAtts,parsed.atts);}
+    else if(parsed.state){const t=parsed.state;t.id=t.id||uid();trips={[t.id]:t};}
+    else{const t=parsed;t.id=t.id||uid();trips={[t.id]:t};}
+    for(const trip of Object.values(trips)){
+      if(!trip.id)trip.id=uid();
+      if(!allTrips[trip.id]){allTrips[trip.id]=trip;await saveTripToDb(trip.id);}
+    }
+    localStorage.removeItem('triply_v6');
+    if(!activeId){const ids=Object.keys(allTrips);if(ids.length)activateTrip(ids[0],false);}
+    showToast('✓ Data migrated!');
+  }catch(e){console.warn('Migration error:',e);}
+}
+
+// ═══════════════════════════════════════════════════════
+//  SUPABASE PERSISTENCE
+// ═══════════════════════════════════════════════════════
+let saveTimer=null;
+function autoSave(){
+  setSyncStatus('saving');clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>saveTripToDb(activeId).then(()=>setSyncStatus('saved')).catch(()=>setSyncStatus('error')),1000);
+}
+async function saveTripToDb(tripId){
+  const trip=allTrips[tripId];if(!trip)return;
+  try{
+    const exists=await sb.get(`trips?id=eq.${tripId}&select=id`);
+    if(exists&&exists.length){await sb.patch(`trips?id=eq.${tripId}`,{data:trip,updated_at:new Date().toISOString()});}
+    else{await sb.post('trips',{id:tripId,data:trip,updated_at:new Date().toISOString()});}
+  }catch(e){
+    // Table may not exist yet — try to create it
+    try{
+      await fetch(`${cfg.sbUrl}/rest/v1/rpc/exec_sql`,{method:'POST',headers:{'apikey':cfg.sbKey,'Authorization':'Bearer '+cfg.sbKey,'Content-Type':'application/json'},body:JSON.stringify({sql:'CREATE TABLE IF NOT EXISTS trips (id text PRIMARY KEY, data jsonb NOT NULL, updated_at timestamptz DEFAULT now());'})});
+      await sb.post('trips',{id:tripId,data:trip,updated_at:new Date().toISOString()});
+    }catch(e2){console.error('Save failed:',e2);throw e2;}
+  }
+}
+async function loadAllTrips(){
+  try{
+    const rows=await sb.get('trips?order=updated_at.desc');
+    allTrips={};(rows||[]).forEach(r=>{allTrips[r.id]=r.data;});
+    if(Object.keys(allTrips).length===0){const t=blankTrip('My First Trip');allTrips[t.id]=t;await saveTripToDb(t.id);}
+    const saved=localStorage.getItem('triply_active');
+    const ids=Object.keys(allTrips);
+    activeId=(saved&&allTrips[saved])?saved:ids[0];
+    activateTrip(activeId,false);
+  }catch(e){
+    console.error('Load trips failed:',e);
+    const t=blankTrip('My First Trip');allTrips[t.id]=t;activateTrip(t.id,false);
+  }
+}
+function activateTrip(tripId,doSave=true){
+  if(doSave&&activeId)saveTripToDb(activeId);
+  activeId=tripId;state=allTrips[tripId]||blankTrip('Trip');
+  if(!state.cats)         state.cats        =JSON.parse(JSON.stringify(DEFAULT_CATS));
+  if(!state.panelWidths)  state.panelWidths ={pit:400,pmap:380};
+  if(!state.panelVisible) state.panelVisible={pit:true,pres:true,pmap:true};
+  if(!state.flights)      state.flights     =[];
+  localStorage.setItem('triply_active',tripId);
+  allTrips[tripId]=state;
+}
+function save(){ allTrips[activeId]=state; autoSave(); }
+function setSyncStatus(s){const d=document.getElementById('syncDot');if(!d)return;d.className='sync-dot '+s;d.title=s==='saving'?'Saving…':s==='saved'?'All changes saved':'Save error';}
+
+function bindHeaderInputs(){
+  document.getElementById('startDate').addEventListener('change',e=>{state.startDate=e.target.value;autoSave();});
+  document.getElementById('endDate').addEventListener('change',e=>{state.endDate=e.target.value;autoSave();});
+}
+
+// ══════════════════════════════════════════
+//  TRIP SWITCHER
+// ══════════════════════════════════════════
+function renderTripSelect(){
+  const sel=document.getElementById('tripSelect');
+  sel.innerHTML=Object.values(allTrips).map(t=>`<option value="${t.id}"${t.id===activeId?' selected':''}>${xe(t.tripName)}</option>`).join('');
+  document.getElementById('startDate').value=state.startDate||'';
+  document.getElementById('endDate').value=state.endDate||'';
+}
+function switchTrip(tripId){
+  if(tripId===activeId)return;
+  save(); activateTrip(tripId);
+  applyPanelState();filterStatus=new Set();filterCats=new Set();
+  renderAll(); showToast('Switched to: '+state.tripName);
+  if(map&&window.google) setTimeout(()=>google.maps.event.trigger(map,'resize'),300);
+}
+
+// ══════════════════════════════════════════
+//  TRIP MANAGER MODAL
+// ══════════════════════════════════════════
+function openTripManager(){ renderTripManagerList(); openOv('tripOv'); }
+function renderTripManagerList(){
+  const list=document.getElementById('tripList');
+  const trips=Object.values(allTrips);
+  list.innerHTML=trips.map(t=>`<div class="trip-item${t.id===activeId?' active':''}">
+    <div style="flex:1;min-width:0">
+      <div class="trip-item-name" onclick="switchTrip('${t.id}');closeOv('tripOv')">${xe(t.tripName)}</div>
+      <div class="trip-item-meta">${(t.cards||[]).length} places · ${(t.days||[]).length} days</div>
+    </div>
+    <button class="btn btn-g btn-s" onclick="renameTripPrompt('${t.id}')">Rename</button>
+    <button class="btn btn-g btn-s" onclick="exportTrip('${t.id}')">Export</button>
+    ${trips.length>1?`<button class="cat-del" onclick="deleteTrip('${t.id}')">✕</button>`:''}
+  </div>`).join('');
+}
+
+function createTrip(){
+  const name=document.getElementById('newTripName').value.trim()||'New Trip';
+  const t=blankTrip(name); allTrips[t.id]=t;
+  document.getElementById('newTripName').value='';
+  saveTripToDb(t.id); switchTrip(t.id); closeOv('tripOv'); renderTripSelect(); showToast('Trip created: '+name);
+}
+function renameTripPrompt(tripId){
+  const t=allTrips[tripId]; if(!t)return;
+  const name=prompt('Rename trip:',t.tripName);
+  if(name&&name.trim()){ t.tripName=name.trim(); if(tripId===activeId)state.tripName=t.tripName; saveTripToDb(tripId); renderTripManagerList(); renderTripSelect(); }
+}
+function deleteTrip(tripId){
+  if(Object.keys(allTrips).length<=1){ showToast("Can't delete the only trip"); return; }
+  if(!confirm('Delete this trip? This cannot be undone.')) return;
+  sb.delete(`trips?id=eq.${tripId}`); delete allTrips[tripId];
+  if(activeId===tripId){ activeId=Object.keys(allTrips)[0]; activateTrip(activeId,false); }
+  renderTripManagerList(); renderTripSelect(); renderAll(); showToast('Trip deleted');
+}
+
+// ══════════════════════════════════════════
+//  EXPORT / IMPORT
+// ══════════════════════════════════════════
+function exportCurrentTrip(){ exportTrip(activeId); }
+function exportTrip(tripId){
+  save(); const t=allTrips[tripId]; if(!t)return;
+  const blob=new Blob([JSON.stringify({trip:t,atts:pendingAtts},null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob); const a=document.createElement('a');
+  const safeName=(t.tripName||'trip').replace(/[^a-z0-9]/gi,'_').toLowerCase();
+  a.href=url; a.download=safeName+'.triply'; a.click(); URL.revokeObjectURL(url); showToast('Exported: '+safeName+'.triply');
+}
+function importTrip(e){
+  const file=e.target.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async ev=>{
+    try{
+      const payload=JSON.parse(ev.target.result); const t=payload.trip;
+      if(!t||!t.tripName)throw new Error('Invalid');
+      t.id=uid(); if(!t.cats)t.cats=JSON.parse(JSON.stringify(DEFAULT_CATS));
+      allTrips[t.id]=t; if(payload.atts)Object.assign(pendingAtts,payload.atts);
+      await saveTripToDb(t.id); switchTrip(t.id); closeOv('tripOv'); renderTripSelect(); showToast('Imported: '+t.tripName);
+    }catch{ showToast('Could not import — invalid file'); }
+    e.target.value='';
+  };
+  reader.readAsText(file);
+}
+
+// ══════════════════════════════════════════
+//  PANEL TOGGLE + RESIZE
+// ══════════════════════════════════════════
+function togglePanel(id){
+  state.panelVisible[id] = !state.panelVisible[id];
+  applyPanelState();
+  save();
+}
+
+function applyPanelState(){
+  const PANELS = ['pit','pres','pmap'];
+  PANELS.forEach(id=>{
+    const panel = document.getElementById(id);
+    const tog   = document.getElementById('tog-'+id);
+    const vis   = state.panelVisible[id] !== false;
+    if(vis){
+      panel.classList.remove('collapsed');
+      if(id === 'pres'){
+        // only use flex:1 when research is the middle visible panel
+        // if pit or pmap are also hidden, pres still expands to fill
+        panel.style.flex     = '1';
+        panel.style.minWidth = '200px';
+        panel.style.width    = '';
+        panel.style.maxWidth = '';
+      } else {
+        panel.style.width    = (state.panelWidths[id]||380)+'px';
+        panel.style.flex     = 'none';
+        panel.style.minWidth = '180px';
+        panel.style.maxWidth = '';
+      }
+    } else {
+      panel.classList.add('collapsed');
+      panel.style.width    = '0';
+      panel.style.flex     = 'none';
+      panel.style.minWidth = '0';
+      panel.style.maxWidth = '0';
+    }
+    if(tog) tog.classList.toggle('on', vis);
+  });
+
+  // Work out which panels are visible
+  const vis = PANELS.filter(id => state.panelVisible[id] !== false);
+
+  // Position resize handles dynamically based on visible panels
+  // rh1 sits between vis[0] and vis[1] (if ≥2 visible)
+  // rh2 sits between vis[1] and vis[2] (if 3 visible)
+  const rh1 = document.getElementById('rh1');
+  const rh2 = document.getElementById('rh2');
+
+  if(vis.length >= 2){
+    // Move rh1 to be between vis[0] and vis[1] in the DOM
+    const leftEl  = document.getElementById(vis[0]);
+    const rightEl = document.getElementById(vis[1]);
+    // Insert rh1 between leftEl and rightEl
+    leftEl.after(rh1);
+    rh1._left  = vis[0];
+    rh1._right = vis[1];
+    rh1.classList.remove('hidden');
+  } else {
+    rh1.classList.add('hidden');
+  }
+
+  if(vis.length === 3){
+    const leftEl  = document.getElementById(vis[1]);
+    const rightEl = document.getElementById(vis[2]);
+    leftEl.after(rh2);
+    rh2._left  = vis[1];
+    rh2._right = vis[2];
+    rh2.classList.remove('hidden');
+  } else {
+    rh2.classList.add('hidden');
+  }
+}
+
+function initResizeHandles(){
+  ['rh1','rh2'].forEach(rhId=>{
+    const handle = document.getElementById(rhId);
+    let startX, startWL, startWR, leftEl, rightEl;
+
+    handle.addEventListener('mousedown',e=>{
+      e.preventDefault();
+      // read dynamic left/right from handle properties set in applyPanelState
+      const lid = handle._left;
+      const rid = handle._right;
+      if(!lid || !rid) return;
+      leftEl  = document.getElementById(lid);
+      rightEl = document.getElementById(rid);
+      startX  = e.clientX;
+      startWL = leftEl.offsetWidth;
+      startWR = rightEl.offsetWidth;
+      handle.classList.add('dragging');
+      document.body.style.cursor     = 'col-resize';
+      document.body.style.userSelect = 'none';
+    });
+
+    document.addEventListener('mousemove',e=>{
+      if(!handle.classList.contains('dragging')) return;
+      const dx   = e.clientX - startX;
+      const minW = 180;
+      const newL = startWL + dx;
+      const newR = startWR - dx;
+      if(newL >= minW && newR >= minW){
+        const lid = handle._left;
+        const rid = handle._right;
+        if(lid !== 'pres'){ leftEl.style.width = newL+'px'; state.panelWidths[lid] = newL; }
+        if(rid !== 'pres'){ rightEl.style.width= newR+'px'; state.panelWidths[rid] = newR; }
+        if(lid === 'pres'){ rightEl.style.width= newR+'px'; state.panelWidths[rid] = newR; }
+        if(rid === 'pres'){ leftEl.style.width = newL+'px'; state.panelWidths[lid] = newL; }
+        // invalidate map on every drag move so tiles fill instantly
+        if(map&&window.google) google.maps.event.trigger(map,'resize');
+      }
+    });
+
+    document.addEventListener('mouseup',()=>{
+      if(!handle.classList.contains('dragging')) return;
+      handle.classList.remove('dragging');
+      document.body.style.cursor     = '';
+      document.body.style.userSelect = '';
+      save();
+      if(map&&window.google) google.maps.event.trigger(map,'resize');
+    });
+  });
+}
+
+
+// ══════════════════════════════════════════
+//  GOOGLE MAPS
+// ══════════════════════════════════════════
+let map, mapMarkers=[], searchMarker=null, mapFilterSt='all', transitLayer=null, transitOn=false;
+const MAP_FILTER_CYCLE=['all','yes','maybe','no'];
+const MAP_FILTER_LABELS={all:'All',yes:'✓ Yes',maybe:'? Maybe',no:'✕ No'};
+const CREAM_STYLE=[
+  {elementType:'geometry',stylers:[{color:'#f5f0e8'}]},
+  {elementType:'labels.text.fill',stylers:[{color:'#2c2820'}]},
+  {elementType:'labels.text.stroke',stylers:[{color:'#faf7f2'}]},
+  {featureType:'administrative',elementType:'geometry.stroke',stylers:[{color:'#c8bda8'}]},
+  {featureType:'landscape.natural',elementType:'geometry',stylers:[{color:'#e8e0d0'}]},
+  {featureType:'poi',elementType:'geometry',stylers:[{color:'#ddd5c0'}]},
+  {featureType:'poi',elementType:'labels.text.fill',stylers:[{color:'#9e9080'}]},
+  {featureType:'poi.park',elementType:'geometry.fill',stylers:[{color:'#d4e8c8'}]},
+  {featureType:'road',elementType:'geometry',stylers:[{color:'#faf7f2'}]},
+  {featureType:'road',elementType:'geometry.stroke',stylers:[{color:'#ddd5c0'}]},
+  {featureType:'road.highway',elementType:'geometry',stylers:[{color:'#e8dfc8'}]},
+  {featureType:'road.highway',elementType:'geometry.stroke',stylers:[{color:'#c8bda8'}]},
+  {featureType:'transit.station',elementType:'labels.text.fill',stylers:[{color:'#6b5f4e'}]},
+  {featureType:'water',elementType:'geometry.fill',stylers:[{color:'#b8d4e8'}]},
+  {featureType:'water',elementType:'labels.text.fill',stylers:[{color:'#6b5f4e'}]},
+];
+
+function loadGoogleMaps(){
+  const s=document.createElement('script');
+  s.src=`https://maps.googleapis.com/maps/api/js?key=${cfg.gmKey}&libraries=places&callback=initGoogleMap`;
+  s.async=true; s.onerror=()=>showToast('Google Maps failed — check your API key');
+  document.head.appendChild(s);
+}
+
+window.initGoogleMap=function(){
+  map=new google.maps.Map(document.getElementById('map'),{
+    center:{lat:54,lng:-3},zoom:5,mapTypeId:'roadmap',styles:CREAM_STYLE,
+    mapTypeControl:false,streetViewControl:false,fullscreenControl:false,
+    zoomControlOptions:{position:google.maps.ControlPosition.RIGHT_BOTTOM}
+  });
+
+  // Transit layer
+  transitLayer = new google.maps.TransitLayer();
+  transitOn = false;
+
+  if(window.ResizeObserver) new ResizeObserver(()=>{if(map)google.maps.event.trigger(map,'resize');}).observe(document.getElementById('map'));
+  refreshMap();
+};
+
+function setMapMode(mode){
+  const triplyMap = document.getElementById('map');
+  const googleFrame = document.getElementById('googleMapFrame');
+  const searchBar = document.getElementById('triplySearchBar');
+  const filterBtn = document.getElementById('mapFilterBtn');
+
+  if(mode==='google'){
+    // Get current centre and open full Google Maps in new tab
+    let lat=54, lng=-3, zoom=12;
+    if(map){ const c=map.getCenter(); lat=c.lat().toFixed(6); lng=c.lng().toFixed(6); zoom=map.getZoom(); }
+    window.open(`https://www.google.com/maps/@${lat},${lng},${zoom}z`,'_blank');
+    // Don't switch mode — just open the tab
+    return;
+  }
+  // Triply mode — nothing to do, already on it
+}
+
+function setMapType(type){
+  if(!map) return;
+  if(type==='roadmap'){ map.setMapTypeId('roadmap'); map.setOptions({styles:CREAM_STYLE}); }
+  else{ map.setMapTypeId(type); map.setOptions({styles:[]}); }
+}
+
+function cycleMapFilter(){
+  const idx=MAP_FILTER_CYCLE.indexOf(mapFilterSt);
+  mapFilterSt=MAP_FILTER_CYCLE[(idx+1)%MAP_FILTER_CYCLE.length];
+  const btn=document.getElementById('mapFilterBtn');
+  if(btn){btn.textContent=MAP_FILTER_LABELS[mapFilterSt];btn.classList.toggle('active',mapFilterSt!=='all');}
+  refreshMap();
+}
+
+function refreshMap(){
+  if(!map||!window.google)return;
+  mapMarkers.forEach(m=>m.setMap(null)); mapMarkers=[];
+  state.cards.forEach(card=>{
+    if(!card.lat||!card.lng)return;
+    const c=getcat(card.catId),dimmed=mapFilterSt!=='all'&&card.status!==mapFilterSt,color=c.color||'#8b6914';
+    let icon;
+    if(c.customImg){
+      icon={url:c.customImg,scaledSize:new google.maps.Size(36,36),anchor:new google.maps.Point(18,18)};
+    }else{
+      // 36px pin: circle + icon centred. Icon paths are 24x24, scaled to 16x16, centred at 18,18
+      const iconPaths=ICONS[c.icon||'pin']||ICONS['pin'];
+      const opacity=dimmed?0.25:1;
+      // translate to centre: (36-16)/2 = 10, scale factor: 16/24 = 0.667
+      const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36" opacity="${opacity}"><circle cx="18" cy="18" r="16" fill="#f5f3ee" stroke="${color}" stroke-width="2"/><g transform="translate(10,10) scale(0.667)" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${iconPaths}</g></svg>`;
+      icon={url:'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg),scaledSize:new google.maps.Size(36,36),anchor:new google.maps.Point(18,18)};
+    }
+    const marker=new google.maps.Marker({position:{lat:parseFloat(card.lat),lng:parseFloat(card.lng)},map,icon,opacity:dimmed?0.25:1,title:card.name});
+    const atts=pendingAtts[card.id]||[],links=(card.extraLinks||[]).filter(l=>l.url),ct=getcat(card.catId);
+    const iw=new google.maps.InfoWindow({maxWidth:280,content:`<div style="font-family:'Jost',sans-serif;min-width:180px;max-width:260px">
+      ${card.imgUrl?`<img src="${xe(card.imgUrl)}" style="width:100%;height:85px;object-fit:cover;border-radius:6px;margin-bottom:8px;display:block" onerror="this.style.display='none'">` :''}
+      <div style="font-weight:600;font-size:14px;margin-bottom:4px">${xe(card.name)}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;align-items:center">
+        <span style="font-size:10px;background:#f0ebe0;border:1px solid #ddd5c0;border-radius:20px;padding:2px 7px;color:#6b5f4e">${xe(ct.name)}</span>
+        ${card.cost?`<span style="font-size:11px;color:#8b6914;font-weight:600">${xe(card.cost)}</span>`:''}
+        <span style="font-size:10px;padding:2px 8px;border-radius:20px;background:${card.status==='yes'?'rgba(45,122,82,.1)':card.status==='no'?'rgba(160,48,32,.1)':'rgba(160,101,32,.1)'};color:${card.status==='yes'?'#2d7a52':card.status==='no'?'#a03020':'#a06520'};font-weight:600">${stLabel(card.status)}</span>
+      </div>
+      ${card.address?`<div style="font-size:10px;color:#9e9080;margin-bottom:5px">📍 ${xe(card.address)}</div>`:''}
+      ${card.notes?`<div style="font-size:11px;color:#6b5f4e;line-height:1.5;margin-bottom:6px">${xe(card.notes).slice(0,150)}${card.notes.length>150?'…':''}</div>`:''}
+      ${card.link?`<div style="margin-bottom:3px"><a href="${xe(card.link)}" target="_blank" style="font-size:11px;color:#8b6914">🔗 Main link ↗</a></div>`:''}
+      ${links.map(l=>`<div style="margin-bottom:3px"><a href="${xe(l.url)}" target="_blank" style="font-size:11px;color:#8b6914">🔗 ${xe(l.label||l.url)}</a></div>`).join('')}
+      <div style="margin-top:8px;padding-top:6px;border-top:1px solid #ddd5c0;display:flex;gap:6px;flex-wrap:wrap">
+        <button onclick="openCardPreview('${card.id}')" style="flex:1;padding:4px;border-radius:5px;border:1px solid #ddd5c0;background:#f0ebe0;cursor:pointer;font-size:11px;font-family:'Jost',sans-serif">Preview</button>
+        <button onclick="editCard('${card.id}')" style="flex:1;padding:4px;border-radius:5px;border:none;background:#8b6914;cursor:pointer;font-size:11px;font-family:'Jost',sans-serif;color:#fff">Edit</button>
+        <a href="https://www.google.com/maps/search/?api=1&query=${parseFloat(card.lat).toFixed(6)},${parseFloat(card.lng).toFixed(6)}&query_place_id=" target="_blank" style="flex:1;padding:4px;border-radius:5px;border:none;background:#4285f4;cursor:pointer;font-size:11px;font-family:'Jost',sans-serif;color:#fff;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center">↗ Google Maps</a>
+      </div></div>`});
+    marker.addListener('click',()=>iw.open(map,marker));
+    marker._cardId=card.id; marker._iw=iw; mapMarkers.push(marker);
+  });
+}
+
+function zoomToCard(cardId){
+  const card=state.cards.find(c=>c.id===cardId);
+  if(!card||!card.lat||!card.lng){showToast('No map pin for this place');return;}
+  if(state.panelVisible['pmap']===false)togglePanel('pmap');
+  setTimeout(()=>{
+    if(!map||!window.google)return;
+    google.maps.event.trigger(map,'resize');
+    map.setCenter({lat:parseFloat(card.lat),lng:parseFloat(card.lng)});map.setZoom(14);
+    const m=mapMarkers.find(x=>x._cardId===cardId);if(m)m._iw.open(map,m);
+  },300);
+}
+
+function fitMap(){
+  if(!map||!window.google)return;
+  const pts=state.cards.filter(c=>c.lat&&c.lng);if(!pts.length)return;
+  const bounds=new google.maps.LatLngBounds();
+  pts.forEach(c=>bounds.extend({lat:parseFloat(c.lat),lng:parseFloat(c.lng)}));
+  map.fitBounds(bounds);
+}
+
+function renderLegend(){}  // no legend in new version
+
+function toggleTransit(){
+  if(!map||!transitLayer) return;
+  transitOn=!transitOn;
+  transitLayer.setMap(transitOn ? map : null);
+  document.getElementById('transitBtn').classList.toggle('active', transitOn);
+  showToast('Transit layer '+(transitOn?'on':'off'));
+}
+
+async function searchMapLocation(){
+  const q=document.getElementById('mapSearchInput').value.trim();if(!q)return;
+  if(!window.google){showToast('Map still loading…');return;}
+  const el=document.getElementById('mapSearchResults');
+  el.innerHTML=`<div class="map-search-result" style="color:var(--t3)">Searching…</div>`;
+  const svc=new google.maps.places.AutocompleteService();
+  svc.getPlacePredictions({input:q,types:['geocode','establishment']},(results,status)=>{
+    if(status!==google.maps.places.PlacesServiceStatus.OK||!results){
+      el.innerHTML=`<div class="map-search-result" style="color:var(--t3)">No results found</div>`;
+      setTimeout(()=>el.innerHTML='',2000);return;
+    }
+    el.innerHTML=results.slice(0,5).map(r=>`<div class="map-search-result" onclick="selectGooglePlace('${r.place_id}','${xe(r.description)}')">
+      <strong>${xe(r.structured_formatting.main_text)}</strong> <span style="color:var(--t3);font-size:11px">· ${xe(r.structured_formatting.secondary_text||'')}</span>
+    </div>`).join('');
+  });
+}
+
+function selectGooglePlace(placeId,description){
+  document.getElementById('mapSearchResults').innerHTML='';
+  document.getElementById('mapSearchInput').value=description.split(',')[0];
+  if(!window.google)return;
+  const svc=new google.maps.places.PlacesService(map);
+  svc.getDetails({placeId,fields:['geometry','formatted_address','name']},(place,status)=>{
+    if(status!==google.maps.places.PlacesServiceStatus.OK)return;
+    const lat=place.geometry.location.lat(),lng=place.geometry.location.lng();
+    if(searchMarker)searchMarker.setMap(null);
+    const pinSvg=`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="12" fill="#fff" stroke="#8b6914" stroke-width="3"/><circle cx="14" cy="14" r="5" fill="#8b6914"/></svg>`;
+    searchMarker=new google.maps.Marker({position:{lat,lng},map,zIndex:999,icon:{url:'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(pinSvg),scaledSize:new google.maps.Size(28,28),anchor:new google.maps.Point(14,14)}});
+    const nm=place.name,addr=place.formatted_address||description;
+    const iw=new google.maps.InfoWindow({content:`<div style="font-family:'Jost',sans-serif;min-width:160px">
+      <div style="font-weight:600;font-size:13px;margin-bottom:3px">${xe(nm)}</div>
+      <div style="font-size:10px;color:#9e9080;margin-bottom:8px">${xe(addr)}</div>
+      <button onclick="createCardFromSearch('${nm.replace(/'/g,"\'")}','${addr.replace(/'/g,"\'")}',${lat},${lng})"
+        style="width:100%;padding:5px;border-radius:5px;border:none;background:#8b6914;color:#fff;cursor:pointer;font-size:11px;font-family:inherit;font-weight:600">+ Add to Research</button>
+    </div>`});
+    iw.open(map,searchMarker);map.setCenter({lat,lng});map.setZoom(14);
+  });
+}
+
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#mapSearchResults')&&!e.target.closest('.map-search-bar')){
+    const el=document.getElementById('mapSearchResults');if(el)el.innerHTML='';
+  }
+});
+
+function createCardFromSearch(name,address,lat,lng){
+  if(state.panelVisible['pres']===false)togglePanel('pres');
+  openAddCard();
+  setTimeout(()=>{
+    document.getElementById('fName').value=name;
+    document.getElementById('fAddr').value=address;
+    document.getElementById('fLat').value=parseFloat(lat).toFixed(6);
+    document.getElementById('fLng').value=parseFloat(lng).toFixed(6);
+    document.getElementById('geoHint').textContent='✓ Location from map search';
+    document.getElementById('geoHint').className='geo-hint ok';
+  },100);
+  if(searchMarker)searchMarker.setMap(null);
+}
+
+
+function getcat(id){ return state.cats.find(c=>c.id===id)||{icon:'pin',color:'#4a4540',name:'Other',id:'',customImg:''}; }
+
+// old map functions replaced by Google Maps versions above
+
+// ══════════════════════════════════════════
+//  FILTERS (status + category, multi-select)
+// ══════════════════════════════════════════
+let filterStatus = new Set(); // empty = show all
+let filterCats   = new Set(); // empty = all cats
+
+function renderFilterRow(){
+  const row = document.getElementById('filterRow');
+  const statusChips = [
+    {val:'yes',  label:'✓ Yes'},
+    {val:'maybe',label:'? Maybe'},
+    {val:'no',   label:'✕ No'},
+  ].map(s=>`<button class="chip${filterStatus.has(s.val)?' on':''}" onclick="toggleStatusFilter('${s.val}')">${s.label}</button>`).join('');
+
+  const catChips = state.cats.map(c=>`
+    <button class="chip${filterCats.has(c.id)?' on':''}" onclick="toggleCatFilter('${c.id}')">
+      <span class="chip-dot" style="background:${c.color}"></span>${xe(c.name)}
+    </button>`).join('');
+
+  row.innerHTML = statusChips + `<div class="filter-sep"></div>` + catChips;
+}
+
+function toggleStatusFilter(val){
+  // Toggle: if already on, turn off. If off, turn on.
+  if(filterStatus.has(val)) filterStatus.delete(val);
+  else filterStatus.add(val);
+  renderFilterRow();
+  renderResearch();
+}
+function toggleCatFilter(catId){
+  if(filterCats.has(catId)) filterCats.delete(catId);
+  else filterCats.add(catId);
+  renderFilterRow();
+  renderResearch();
+}
+function filterByCat(catId){
+  filterCats = new Set([catId]);
+  renderFilterRow();
+  renderResearch();
+  if(state.panelVisible['pres']===false) togglePanel('pres');
+}
+
+function cardPassesFilter(card){
+  // If no status filters active, show all. If some active, show only matching.
+  const statusOk = filterStatus.size === 0 || filterStatus.has(card.status);
+  const catOk    = filterCats.size === 0    || filterCats.has(card.catId);
+  return statusOk && catOk;
+}
+
+// ══════════════════════════════════════════
+//  RENDER ALL
+// ══════════════════════════════════════════
+let editId=null, curSt='maybe', fetchTmrId=null;
+function renderAll(){ renderTripSelect(); renderFilterRow(); renderResearch(); renderItinerary(); refreshMap(); populateCatSel(); }
+
+// ══════════════════════════════════════════
+//  RESEARCH CARDS
+// ══════════════════════════════════════════
+function renderResearch(){
+  const el = document.getElementById('res-body');
+  const list = state.cards.filter(cardPassesFilter);
+  if(!list.length){
+    el.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:50px 20px;color:var(--t3);font-size:13px">${state.cards.length?'No cards match the current filters':'No places yet — click <strong style="color:var(--t2)">+ Add Place</strong> to start'}</div>`;
+    return;
+  }
+  el.innerHTML = list.map(c=>cardHtml(c)).join('');
+  el.querySelectorAll('.rc').forEach(el=>{
+    el.addEventListener('dragstart',e=>{
+      e.dataTransfer.setData('cardId',el.dataset.id);
+      e.dataTransfer.setData('src','res');
+      el.classList.add('drag');
+    });
+    el.addEventListener('dragend',()=>el.classList.remove('drag'));
+  });
+}
+
+function cardHtml(c){
+  const ct = getcat(c.catId);
+  const img = c.imgUrl
+    ? `<img class="rc-img" src="${xe(c.imgUrl)}" onerror="this.style.display='none'" alt="">`
+    : `<div class="rc-ph">${iconCircleHtml(ct.icon||'pin',ct.color,36,ct.customImg||'')}</div>`;
+  const mapBtn = (c.lat&&c.lng) ? `<button class="map-pin-btn" onclick="zoomToCard('${c.id}')" title="Zoom map to this place">${svgIcon('pin',10,ct.color)} View on map</button>` : '';
+  const assignments = getCardDayAssignments(c.id);
+  const dayBtn = assignments.length
+    ? assignments.map(a=>{
+        let label = a.day.label;
+        if(a.day.isoDate){
+          const parts=a.day.isoDate.split('-');
+          label=`${parts[2]}/${parts[1]}`;
+        } else if(a.day.date){
+          const dp=a.day.date.split(' ').filter(Boolean);
+          if(dp.length>=3){
+            const months={Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'};
+            label=`${dp[1].padStart(2,'0')}/${months[dp[2].slice(0,3)]||'??'}`;
+          }
+        }
+        return `<button class="btn btn-g btn-s" onclick="scrollToDay('${a.day.id}')" title="Go to ${xe(a.day.label)} — ${xe(a.day.date||'')}" style="flex-shrink:0">${xe(label)}</button>`;
+      }).join('')
+    : '';
+
+  return `<div class="rc" data-id="${c.id}" data-s="${c.status}" draggable="true">
+    ${img}
+    <div class="rc-bd">
+      <div>
+        <div class="rc-top">
+          <div class="rc-nm">${xe(c.name)||'<em style="color:var(--t3)">Unnamed</em>'}</div>
+          <div class="rc-cat">${svgIcon(ct.icon||'pin',10,ct.color)} ${xe(ct.name)}</div>
+        </div>
+        <div class="rc-meta">
+          ${c.cost?`<span class="rc-cost">${xe(c.cost)}</span>`:''}
+          <span class="rc-st ${c.status}">${stLabel(c.status)}</span>
+          ${mapBtn}
+        </div>
+      </div>
+    </div>
+    <div class="rc-ft">
+      ${dayBtn}
+      <button class="btn btn-g btn-s" onclick="openCardPreview('${c.id}')" style="flex-shrink:0">Preview</button>
+      <button class="btn btn-g btn-s" onclick="editCard('${c.id}')" style="flex-shrink:0">Edit</button>
+      <button class="btn btn-g btn-s" onclick="delCard('${c.id}')" style="flex-shrink:0">Delete</button>
+    </div>
+  </div>`;
+}
+// Returns array of {day, secId} for every place this card appears in
+function getCardDayAssignments(cardId){
+  const assignments=[];
+  state.days.forEach(day=>{
+    Object.entries(day.sections||{}).forEach(([secId,sec])=>{
+      if((sec.cards||[]).includes(cardId)) assignments.push({day,secId});
+    });
+  });
+  return assignments;
+}
+function stLabel(s){ return s==='yes'?'✓ Yes':s==='maybe'?'? Maybe':'✕ No'; }
+
+// ══════════════════════════════════════════
+//  ITINERARY
+// ══════════════════════════════════════════
+const SECTIONS=[
+  {id:'accommodation',label:'Accommodation',icon:'tent'},
+  {id:'morning',      label:'Morning',      icon:'sun'},
+  {id:'lunch',        label:'Midday',       icon:'fork'},
+  {id:'afternoon',    label:'Afternoon',    icon:'compass'},
+  {id:'evening',      label:'Evening',      icon:'star'},
+  {id:'notes',        label:'Notes',        icon:'map'},
+];
+function makeSec(){ const o={}; SECTIONS.forEach(s=>{o[s.id]={cards:[],note:''}}); return o; }
+
+function generateDays(){
+  const s=document.getElementById('startDate').value;
+  const e=document.getElementById('endDate').value;
+  if(!s||!e){showToast('Set start and end dates first');return;}
+  const start=new Date(s),end=new Date(e);
+  if(end<start){showToast('End date must be after start');return;}
+  const diff=Math.round((end-start)/86400000)+1;
+  if(diff>90){showToast('Over 90 days — check dates');return;}
+  const existing=state.days;
+  state.days=[];
+  for(let i=0;i<diff;i++){
+    const d=new Date(start); d.setDate(d.getDate()+i);
+    const dateStr=d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+    const isoDate=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const old=existing[i]||{};
+    state.days.push({id:old.id||uid(),label:'Day '+(i+1),date:dateStr,isoDate,sections:old.sections||makeSec()});
+  }
+  save(); renderItinerary(); showToast(diff+' days generated');
+}
+function addDay(){ const n=state.days.length+1; state.days.push({id:uid(),label:'Day '+n,date:'',sections:makeSec()}); save(); renderItinerary(); }
+
+function renderItinerary(){
+  const body=document.getElementById('itin-body');
+  body.innerHTML = state.days.map(d=>dayColHtml(d)).join('')
+    + `<button class="add-day" onclick="addDay()"><span style="font-size:20px">＋</span><span>Add Day</span></button>`;
+
+  body.querySelectorAll('.dsec-body').forEach(dz=>{
+    dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over');});
+    dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+    dz.addEventListener('drop',e=>{
+      e.preventDefault(); dz.classList.remove('over');
+      const cid=e.dataTransfer.getData('cardId');
+      const src=e.dataTransfer.getData('src');
+      const fromDay=e.dataTransfer.getData('fromDay');
+      const fromSec=e.dataTransfer.getData('fromSec');
+      const dayId=dz.dataset.day, secId=dz.dataset.sec;
+      if(src==='itin'){
+        const fd=state.days.find(d=>d.id===fromDay);
+        if(fd&&fd.sections[fromSec]) fd.sections[fromSec].cards=fd.sections[fromSec].cards.filter(x=>x!==cid);
+      }
+      const td=state.days.find(d=>d.id===dayId);
+      if(td){
+        if(!td.sections[secId]) td.sections[secId]={cards:[],note:''};
+        if(!td.sections[secId].cards.includes(cid)){ td.sections[secId].cards.push(cid); showToast('Added to '+td.label); }
+      }
+      save(); renderItinerary(); renderResearch();
+    });
+  });
+
+  body.querySelectorAll('.ic').forEach(el=>{
+    el.addEventListener('click',ev=>{ if(ev.target.classList.contains('ic-rm'))return; openCardPreview(el.dataset.id); });
+    el.setAttribute('draggable','true');
+    el.addEventListener('dragstart',e=>{
+      e.stopPropagation();
+      e.dataTransfer.setData('cardId',el.dataset.id);
+      e.dataTransfer.setData('src','itin');
+      e.dataTransfer.setData('fromDay',el.dataset.day);
+      e.dataTransfer.setData('fromSec',el.dataset.sec);
+    });
+  });
+}
+
+function dayColHtml(day){
+  if(!day.sections) day.sections=makeSec();
+  // Render any flights for this day
+  const dayFlights = (state.flights||[]).filter(f=>f.dayId===day.id);
+  const flightHtml = dayFlights.map(f=>flightCardHtml(f)).join('');
+
+  const secHtml=SECTIONS.map(sec=>{
+    const sd=day.sections[sec.id]||{cards:[],note:''};
+    const items=(sd.cards||[]).map(cid=>{
+      const c=state.cards.find(x=>x.id===cid); if(!c)return'';
+      const ct=getcat(c.catId);
+      const imgH=c.imgUrl
+        ?`<img class="ic-img" src="${xe(c.imgUrl)}" onerror="this.style.display='none'" alt="">`
+        :`<div class="ic-ph">${iconCircleHtml(ct.icon||'pin',ct.color,22,ct.customImg||'')}</div>`;
+      return `<div class="ic" data-id="${c.id}" data-day="${day.id}" data-sec="${sec.id}" data-s="${c.status}">
+        ${imgH}
+        <div class="ic-body">
+          <div class="ic-nm">${xe(c.name)||'Unnamed'}</div>
+          <div class="ic-sub">${svgIcon(ct.icon||'pin',10,ct.color)} ${c.cost?`<span style="color:var(--acc)">${xe(c.cost)}</span>`:''}</div>
+        </div>
+        <button class="ic-rm" onclick="rmFromSec('${day.id}','${sec.id}','${c.id}')">✕</button>
+      </div>`;
+    }).join('');
+    return `<div class="dsec">
+      <div class="dsec-h">${svgIcon(sec.icon,10,'#9e9080')} ${sec.label}</div>
+      <div class="dsec-body" data-day="${day.id}" data-sec="${sec.id}">
+        ${items}
+        <textarea class="day-note" placeholder="Free type…" onchange="saveNote('${day.id}','${sec.id}',this.value)">${xe(sd.note||'')}</textarea>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<div class="dcol">
+    <div class="dcol-h">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span class="d-title">${xe(day.label)}</span>
+        <button class="ibtn" style="width:17px;height:17px;font-size:9px" onclick="delDay('${day.id}')">✕</button>
+      </div>
+      ${day.date?`<span class="d-date-lbl">${xe(day.date)}</span>`:''}
+    </div>
+    <div class="dcol-scroll">
+      ${flightHtml}
+      ${secHtml}
+    </div>
+  </div>`;
+}
+function scrollToDay(dayId){
+  // Make sure itinerary panel is visible
+  if(state.panelVisible['pit']===false) togglePanel('pit');
+  setTimeout(()=>{
+    const body = document.getElementById('itin-body');
+    const col = body.querySelector(`.dcol-h button[onclick="delDay('${dayId}')"]`)?.closest('.dcol');
+    if(!col) return;
+    col.scrollIntoView({behavior:'smooth', block:'nearest', inline:'center'});
+    col.style.transition='box-shadow .2s';
+    col.style.boxShadow='0 0 0 3px #8b6914';
+    setTimeout(()=>{ col.style.boxShadow=''; },1500);
+  },300);
+}
+function saveNote(dayId,secId,val){ const day=state.days.find(d=>d.id===dayId); if(day){if(!day.sections[secId])day.sections[secId]={cards:[],note:''};day.sections[secId].note=val;save();} }
+function delDay(id){ state.days=state.days.filter(d=>d.id!==id); save(); renderItinerary(); }
+function rmFromSec(dayId,secId,cid){ const d=state.days.find(x=>x.id===dayId); if(d&&d.sections[secId]){d.sections[secId].cards=d.sections[secId].cards.filter(x=>x!==cid);save();renderItinerary();renderResearch();} }
+
+// ══════════════════════════════════════════
+//  CARD PREVIEW
+// ══════════════════════════════════════════
+function openCardPreview(cardId){
+  const c=state.cards.find(x=>x.id===cardId); if(!c)return;
+  const ct=getcat(c.catId);
+  const atts=pendingAtts[c.id]||[];
+  const links=(c.extraLinks||[]).filter(l=>l.url);
+  const nimgs=(c.notesImages||[]);
+  document.getElementById('cprevModal').innerHTML=`
+    ${c.imgUrl?`<img class="cprev-img" src="${xe(c.imgUrl)}" onerror="this.style.display='none'" alt="">`:`<div class="cprev-ph">${iconCircleHtml(ct.icon||'pin',ct.color,48,ct.customImg||'')}</div>`}
+    <div class="cprev-body">
+      <div class="cprev-head"><div class="cprev-name">${xe(c.name)||'Unnamed'}</div><button class="ibtn" onclick="closeCprev()">✕</button></div>
+      <div class="cprev-meta">
+        <span class="rc-cat">${svgIcon(ct.icon||'pin',11,ct.color)} ${xe(ct.name)}</span>
+        ${c.cost?`<span class="rc-cost">${xe(c.cost)}</span>`:''}
+        <span class="rc-st ${c.status}">${stLabel(c.status)}</span>
+        ${(c.lat&&c.lng)?`<button class="map-pin-btn" onclick="closeCprev();zoomToCard('${c.id}')">${svgIcon('pin',11,ct.color)} View on map</button>`:''}
+      </div>
+      ${c.address?`<div style="font-size:12px;color:var(--t3);margin-bottom:8px">📍 ${xe(c.address)}</div>`:''}
+      ${c.notes?`<div class="cprev-notes">${xe(c.notes)}</div>`:''}
+      ${nimgs.length?`<div class="cprev-section"><div class="cprev-slbl">Images</div><div class="cprev-imgs">${nimgs.map(src=>`<img src="${xe(src)}" onclick="openLbox('${xe(src)}')" alt="">`).join('')}</div></div>`:''}
+      ${(c.link||links.length)?`<div class="cprev-section"><div class="cprev-slbl">Links</div>
+        ${c.link?`<div style="font-size:12px;margin-bottom:3px">🔗 <a href="${xe(c.link)}" target="_blank">Main link ↗</a></div>`:''}
+        ${links.map(l=>`<div style="font-size:12px;margin-bottom:3px">🔗 <a href="${xe(l.url)}" target="_blank">${xe(l.label||l.url)}</a></div>`).join('')}
+      </div>`:''}
+      ${atts.length?`<div class="cprev-section"><div class="cprev-slbl">Attachments</div><div class="att-list-card">${atts.map(a=>`<div class="att-item"><span class="att-icon">📄</span><span class="att-name">${xe(a.name)}</span><button class="att-open" onclick="openPdfFromCard('${c.id}','${a.id}')">Preview</button></div>`).join('')}</div></div>`:''}
+    </div>
+    <div class="cprev-foot">
+      <button class="btn btn-g" onclick="closeCprev()">Close</button>
+      <button class="btn btn-p" onclick="closeCprev();editCard('${c.id}')">Edit</button>
+    </div>`;
+  document.getElementById('cprevOv').classList.add('open');
+}
+function closeCprev(){ document.getElementById('cprevOv').classList.remove('open'); }
+document.getElementById('cprevOv').addEventListener('click',e=>{ if(e.target===document.getElementById('cprevOv'))closeCprev(); });
+
+// ══════════════════════════════════════════
+//  ADD / EDIT CARD MODAL
+// ══════════════════════════════════════════
+let curNotesImgs = []; // base64 strings for current card being edited
+
+function openAddCard(){
+  editId=null; curSt='maybe'; curNotesImgs=[];
+  document.getElementById('cmTitle').textContent='Add Place';
+  pendingAtts['__new__']=[];
+  clearForm(); populateCatSel(); renderNotesImgsModal(); openOv('cardOv');
+}
+function editCard(id){
+  const c=state.cards.find(x=>x.id===id); if(!c)return;
+  editId=id; curSt=c.status; curNotesImgs=[...(c.notesImages||[])];
+  document.getElementById('cmTitle').textContent='Edit Place';
+  document.getElementById('fLink').value  =c.link   ||'';
+  document.getElementById('fImgUrl').value=c.imgUrl ||'';
+  document.getElementById('fName').value  =c.name   ||'';
+  document.getElementById('fCost').value  =c.cost   ||'';
+  document.getElementById('fNotes').value =c.notes  ||'';
+  document.getElementById('fLat').value   =c.lat    ||'';
+  document.getElementById('fLng').value   =c.lng    ||'';
+  document.getElementById('fAddr').value  =c.address||'';
+  document.getElementById('geoHint').textContent='';
+  populateCatSel(c.catId); refreshSP();
+  if(!pendingAtts[c.id]) pendingAtts[c.id]=[];
+  renderAttList(); renderExtraLinks(c.extraLinks||[]); renderNotesImgsModal();
+  if(c.imgUrl) showPrev(c.imgUrl); else hidePrev();
+  openOv('cardOv');
+}
+function clearForm(){
+  ['fLink','fImgUrl','fName','fCost','fNotes','fLat','fLng','fAddr'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fHint').textContent=''; document.getElementById('fHint').className='fh';
+  document.getElementById('geoHint').textContent='';
+  document.getElementById('attList').innerHTML=''; document.getElementById('attHint').textContent='';
+  document.getElementById('extraLinksList').innerHTML='';
+  hidePrev(); curSt='maybe'; refreshSP(); curNotesImgs=[];
+}
+function saveCard(){
+  const name   = document.getElementById('fName').value.trim();
+  const link   = document.getElementById('fLink').value.trim();
+  const imgRaw = document.getElementById('fImgUrl').value.trim() || document.getElementById('iPrev').src;
+  const img    = cleanImg(imgRaw);
+  const cost   = document.getElementById('fCost').value.trim();
+  const notes  = document.getElementById('fNotes').value.trim();
+  const catId  = document.getElementById('fCat').value;
+  const lat    = parseFloat(document.getElementById('fLat').value)||null;
+  const lng    = parseFloat(document.getElementById('fLng').value)||null;
+  const address= document.getElementById('fAddr').value.trim();
+  const extraLinks=collectExtraLinks();
+  if(!name&&!link){ showToast('Enter a name or link'); return; }
+  const data={name:name||domain(link),link,imgUrl:img,cost,notes,catId,status:curSt,lat,lng,address,extraLinks,notesImages:curNotesImgs};
+  if(editId){ Object.assign(state.cards.find(x=>x.id===editId),data); }
+  else{
+    const nc={id:uid(),...data};
+    if(pendingAtts['__new__']&&pendingAtts['__new__'].length){ pendingAtts[nc.id]=pendingAtts['__new__']; delete pendingAtts['__new__']; }
+    state.cards.push(nc);
+  }
+  save(); closeCardModal(); renderAll(); showToast(editId?'Place updated':'Place added');
+}
+function cleanImg(s){ if(!s||s===location.href)return''; try{new URL(s);return s;}catch{return '';} }
+function delCard(id){
+  state.cards=state.cards.filter(c=>c.id!==id);
+  state.days.forEach(d=>{Object.values(d.sections||{}).forEach(s=>{s.cards=s.cards.filter(x=>x!==id);});});
+  delete pendingAtts[id];
+  save(); renderAll(); showToast('Deleted');
+}
+function pickSt(s){ curSt=s; refreshSP(); }
+function refreshSP(){ document.querySelectorAll('.so').forEach(b=>b.classList.toggle('sel',b.classList.contains(curSt))); }
+function closeCardModal(){ closeOv('cardOv'); }
+
+// image fetch
+function scheduleFetch(){ clearTimeout(fetchTmrId); fetchTmrId=setTimeout(doFetch,900); }
+async function doFetch(){
+  const url=document.getElementById('fLink').value.trim();
+  if(!url||!url.startsWith('http'))return;
+  const h=document.getElementById('fHint');
+  h.textContent='Fetching preview…'; h.className='fh load';
+  try{
+    const r=await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`);
+    const j=await r.json();
+    const img=j?.data?.image?.url||j?.data?.logo?.url||'';
+    const title=j?.data?.title||'';
+    if(img){showPrev(img);document.getElementById('fImgUrl').value=img;h.textContent='✓ Image found';h.className='fh ok';}
+    else{h.textContent='No image found — paste or upload one';h.className='fh err';hidePrev();}
+    if(title&&!document.getElementById('fName').value) document.getElementById('fName').value=title;
+  }catch{ h.textContent='Could not fetch — paste image URL or upload'; h.className='fh err'; }
+}
+function setImgOv(){ const v=document.getElementById('fImgUrl').value.trim(); if(v)showPrev(v); else hidePrev(); }
+function handleImgUpload(e){
+  const file=e.target.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{showPrev(ev.target.result);document.getElementById('fImgUrl').value='';};
+  reader.readAsDataURL(file); e.target.value='';
+}
+function showPrev(src){ document.getElementById('iPrev').src=src; document.getElementById('iPrevWrap').style.display='block'; }
+function hidePrev(){ document.getElementById('iPrevWrap').style.display='none'; document.getElementById('iPrev').src=''; }
+
+// notes images
+function renderNotesImgsModal(){
+  const wrap=document.getElementById('notesImgsModal');
+  if(!wrap) return;
+  const imgs=curNotesImgs.map((src,i)=>`
+    <div class="nim-wrap">
+      <img src="${xe(src)}" onclick="openLbox('${xe(src)}')" alt="">
+      <button class="nim-del" onclick="delNotesImg(${i})">✕</button>
+    </div>`).join('');
+  wrap.innerHTML=imgs;
+}
+function handleNotesImg(e){
+  const files=Array.from(e.target.files); if(!files.length)return;
+  files.forEach(file=>{
+    if(!file.type.startsWith('image/')){showToast('Only image files supported');return;}
+    if(file.size>5*1024*1024){showToast('Image too large (max 5MB)');return;}
+    const reader=new FileReader();
+    reader.onload=ev=>{curNotesImgs.push(ev.target.result);renderNotesImgsModal();};
+    reader.readAsDataURL(file);
+  });
+  e.target.value='';
+}
+function handleNotesImgDrop(e){
+  e.preventDefault();
+  const dz=document.getElementById('notesImgDrop');
+  if(dz) dz.classList.remove('over');
+  const files=Array.from(e.dataTransfer.files).filter(f=>f.type.startsWith('image/'));
+  if(files.length){
+    files.forEach(file=>{
+      if(file.size>5*1024*1024){showToast('Image too large (max 5MB)');return;}
+      const reader=new FileReader();
+      reader.onload=ev=>{curNotesImgs.push(ev.target.result);renderNotesImgsModal();};
+      reader.readAsDataURL(file);
+    });
+  } else {
+    // Try to extract image URL from dragged browser image
+    const html=e.dataTransfer.getData('text/html');
+    const urlDirect=e.dataTransfer.getData('text/uri-list')||e.dataTransfer.getData('text/plain');
+    const srcMatch=html&&html.match(/src=["']([^"']+)["']/i);
+    const imgUrl=srcMatch?srcMatch[1]:urlDirect;
+    if(imgUrl&&imgUrl.startsWith('http')){
+      curNotesImgs.push(imgUrl); renderNotesImgsModal(); showToast('Image added');
+    } else {
+      showToast('Drop an image file or drag an image from your browser');
+    }
+  }
+}
+function addNotesImgFromUrl(){
+  const url=document.getElementById('notesImgUrl').value.trim();
+  if(!url){showToast('Enter an image URL first');return;}
+  if(!url.startsWith('http')){showToast('URL must start with http');return;}
+  curNotesImgs.push(url);
+  document.getElementById('notesImgUrl').value='';
+  renderNotesImgsModal();
+  showToast('Image added');
+}
+function delNotesImg(i){ curNotesImgs.splice(i,1); renderNotesImgsModal(); }
+
+// extra links
+function addLinkRow(label='',url=''){
+  const div=document.createElement('div');
+  div.className='link-row';
+  div.innerHTML=`<input class="fi link-label-w" placeholder="Label" value="${xe(label)}"><input class="fi" placeholder="https://…" value="${xe(url)}" style="flex:1"><button class="ibtn" onclick="this.parentElement.remove()">✕</button>`;
+  document.getElementById('extraLinksList').appendChild(div);
+}
+function renderExtraLinks(links){ document.getElementById('extraLinksList').innerHTML=''; (links||[]).forEach(l=>addLinkRow(l.label,l.url)); }
+function collectExtraLinks(){
+  return Array.from(document.getElementById('extraLinksList').querySelectorAll('.link-row')).map(row=>{
+    const inputs=row.querySelectorAll('input'); return{label:inputs[0].value.trim(),url:inputs[1].value.trim()};
+  }).filter(l=>l.url);
+}
+
+// geocode
+async function geocodeAddr(){
+  const addr=document.getElementById('fAddr').value.trim();
+  if(!addr){showToast('Enter an address first');return;}
+  const hint=document.getElementById('geoHint');hint.textContent='Searching…';hint.className='geo-hint load';
+  if(window.google){
+    new google.maps.Geocoder().geocode({address:addr},(results,status)=>{
+      if(status==='OK'&&results[0]){
+        const loc=results[0].geometry.location;
+        document.getElementById('fLat').value=loc.lat().toFixed(6);
+        document.getElementById('fLng').value=loc.lng().toFixed(6);
+        hint.textContent='✓ '+results[0].formatted_address;hint.className='geo-hint ok';
+      }else{hint.textContent='Not found — try a more specific address';hint.className='geo-hint err';}
+    });
+  }else{
+    try{
+      const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}&limit=1`,{headers:{'Accept-Language':'en'}});
+      const j=await r.json();
+      if(j&&j.length){document.getElementById('fLat').value=parseFloat(j[0].lat).toFixed(6);document.getElementById('fLng').value=parseFloat(j[0].lon).toFixed(6);hint.textContent='✓ '+j[0].display_name.split(',').slice(0,3).join(', ');hint.className='geo-hint ok';}
+      else{hint.textContent='Not found';hint.className='geo-hint err';}
+    }catch{hint.textContent='Could not search';hint.className='geo-hint err';}
+  }
+}
+
+// ══════════════════════════════════════════
+//  ATTACHMENTS
+// ══════════════════════════════════════════
+function handleAttUpload(e){
+  const file=e.target.files[0]; if(!file)return;
+  if(file.type!=='application/pdf'){showToast('Only PDFs supported');return;}
+  if(file.size>50*1024*1024){showToast('PDF too large (max 50MB)');return;}
+  document.getElementById('attHint').textContent='Uploading…';
+  const reader=new FileReader();
+  reader.onload=async ev=>{
+    const id=editId||'__new__'; if(!pendingAtts[id])pendingAtts[id]=[];
+    let url=ev.target.result;
+    try{ url=await uploadFileToStorage(ev.target.result,file.name); document.getElementById('attHint').textContent='✓ Uploaded'; }
+    catch{ document.getElementById('attHint').textContent='✓ Attached (local)'; }
+    pendingAtts[id].push({id:uid(),name:file.name,url,dataUrl:ev.target.result});
+    setTimeout(()=>document.getElementById('attHint').textContent='',2500);
+    e.target.value=''; renderAttList();
+  };
+  reader.readAsDataURL(file);
+}
+function renderAttList(){
+  const cardId=editId||'__new__';
+  const atts=pendingAtts[cardId]||[];
+  document.getElementById('attList').innerHTML=atts.map(a=>`
+    <div class="att-item"><span class="att-icon">📄</span><span class="att-name" title="${xe(a.name)}">${xe(a.name)}</span>
+    <button class="att-open" onclick="openPdfFromCard('${cardId}','${a.id}')">Preview</button>
+    <button class="att-del" onclick="delPendingAtt('${cardId}','${a.id}')">✕</button></div>`).join('');
+}
+function delPendingAtt(cardId,attId){ if(pendingAtts[cardId])pendingAtts[cardId]=pendingAtts[cardId].filter(a=>a.id!==attId); renderAttList(); }
+function openPdfFromCard(cardId,attId){ const a=(pendingAtts[cardId]||[]).find(x=>x.id===attId); if(a){document.getElementById('pdfTitle').textContent=a.name;document.getElementById('pdfFrame').src=a.url||a.dataUrl||'';document.getElementById('pdfOv').classList.add('open');} }
+function closePdf(){ document.getElementById('pdfOv').classList.remove('open'); document.getElementById('pdfFrame').src=''; }
+document.getElementById('pdfOv').addEventListener('click',e=>{ if(e.target===document.getElementById('pdfOv'))closePdf(); });
+
+// ══════════════════════════════════════════
+//  ICON PICKER (SVG grid)
+// ══════════════════════════════════════════
+let selectedIconKey    = 'pin';
+let newCatCustomImg    = ''; // base64 for new cat
+let editCatSelectedIcon= 'pin';
+let editCatCustomImg   = ''; // base64 for edit cat
+let editingCatId       = null;
+
+function buildIconGrids(){
+  buildIconGrid('iconGrid',    (k)=>{ selectedIconKey=k; newCatCustomImg=''; updateNewCatPreview(); highlightIconGrid('iconGrid',k); });
+  buildIconGrid('editIconGrid',(k)=>{ editCatSelectedIcon=k; editCatCustomImg=''; updateEditCatPreview(); highlightIconGrid('editIconGrid',k); });
+}
+function buildIconGrid(gridId, onSelect){
+  const grid=document.getElementById(gridId); if(!grid)return;
+  grid.innerHTML=ICON_KEYS.map(k=>`
+    <div class="ig-btn" data-key="${k}" onclick="(${onSelect.toString()})('${k}')" title="${k}">
+      ${svgIcon(k,15,'#4a4540')}
+    </div>`).join('');
+}
+function highlightIconGrid(gridId, key){
+  document.querySelectorAll(`#${gridId} .ig-btn`).forEach(b=>{
+    b.classList.toggle('sel', b.dataset.key===key);
+  });
+}
+
+function handleNewCatImg(e){
+  const file=e.target.files[0]; if(!file)return;
+  if(file.size>2*1024*1024){showToast('Image too large — max 2MB for icons');return;}
+  const reader=new FileReader();
+  reader.onload=ev=>{ newCatCustomImg=ev.target.result; updateNewCatPreview(); e.target.value=''; };
+  reader.readAsDataURL(file);
+}
+function updateNewCatPreview(){
+  const el=document.getElementById('newCatPreview'); if(!el)return;
+  if(newCatCustomImg){
+    el.innerHTML=`<img src="${newCatCustomImg}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">`;
+  } else {
+    el.innerHTML=svgIcon(selectedIconKey||'pin',16,'#4a4540');
+  }
+}
+
+function handleEditCatImg(e){
+  const file=e.target.files[0]; if(!file)return;
+  if(file.size>2*1024*1024){showToast('Image too large — max 2MB for icons');return;}
+  const reader=new FileReader();
+  reader.onload=ev=>{ editCatCustomImg=ev.target.result; updateEditCatPreview(); e.target.value=''; };
+  reader.readAsDataURL(file);
+}
+function updateEditCatPreview(){
+  const el=document.getElementById('editCatPreview'); if(!el)return;
+  if(editCatCustomImg){
+    el.innerHTML=`<img src="${editCatCustomImg}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">`;
+  } else {
+    el.innerHTML=svgIcon(editCatSelectedIcon||'pin',16,'#4a4540');
+  }
+}
+function clearEditCatCustomImg(){ editCatCustomImg=''; updateEditCatPreview(); }
+
+// ══════════════════════════════════════════
+//  CATEGORY MODAL
+// ══════════════════════════════════════════
+function openCatModal(){ renderCatList(); openOv('catOv'); }
+function closeCatModal(){ closeOv('catOv'); renderAll(); }
+function renderCatList(){
+  document.getElementById('catList').innerHTML=state.cats.map(c=>`
+    <div class="cat-row">
+      ${iconCircleHtml(c.icon||'pin',c.color,28,c.customImg||'')}
+      <span class="cat-nm">${xe(c.name)}</span>
+      <div class="cat-col-dot" style="background:${c.color}"></div>
+      <button class="cat-edit-btn" onclick="openEditCat('${c.id}')">Edit</button>
+      <button class="cat-del" onclick="delCat('${c.id}')">✕</button>
+    </div>`).join('');
+}
+function addCat(){
+  const nm=document.getElementById('nCatNm').value.trim();
+  const cl=document.getElementById('nCatCl').value;
+  if(!nm){showToast('Enter a category name');return;}
+  state.cats.push({id:uid(),name:nm,icon:selectedIconKey||'pin',color:cl,customImg:newCatCustomImg||''});
+  document.getElementById('nCatNm').value='';
+  selectedIconKey='pin'; newCatCustomImg='';
+  highlightIconGrid('iconGrid','pin'); updateNewCatPreview();
+  save(); renderCatList(); showToast('Category added');
+}
+function delCat(id){ state.cats=state.cats.filter(c=>c.id!==id); save(); renderCatList(); }
+function populateCatSel(sel){
+  document.getElementById('fCat').innerHTML=state.cats.map(c=>`<option value="${c.id}"${sel===c.id?' selected':''}>${c.name}</option>`).join('');
+}
+
+function openEditCat(catId){
+  const c=state.cats.find(x=>x.id===catId); if(!c)return;
+  editingCatId=catId;
+  editCatSelectedIcon=c.icon||'pin';
+  editCatCustomImg=c.customImg||'';
+  document.getElementById('editCatTitle').textContent='Edit: '+c.name;
+  document.getElementById('ecName').value=c.name;
+  document.getElementById('ecColor').value=c.color||'#4a4540';
+  highlightIconGrid('editIconGrid',editCatSelectedIcon);
+  updateEditCatPreview();
+  openOv('editCatOv');
+}
+function closeEditCat(){ closeOv('editCatOv'); }
+function saveEditCat(){
+  const c=state.cats.find(x=>x.id===editingCatId); if(!c)return;
+  c.name      = document.getElementById('ecName').value.trim()||c.name;
+  c.icon      = editCatSelectedIcon;
+  c.color     = document.getElementById('ecColor').value;
+  c.customImg = editCatCustomImg;
+  save(); closeEditCat(); renderCatList(); renderAll(); showToast('Category updated');
+}
+
+// ══════════════════════════════════════════
+//  IMAGE LIGHTBOX
+// ══════════════════════════════════════════
+function openLbox(src){ document.getElementById('lboxImg').src=src; document.getElementById('lboxOv').classList.add('open'); }
+function closeLbox(){ document.getElementById('lboxOv').classList.remove('open'); }
+
+// ══════════════════════════════════════════
+//  OVERLAY
+// ══════════════════════════════════════════
+function openOv(id){ document.getElementById(id).classList.add('open'); }
+function closeOv(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o)closeOv(o.id); }));
+
+// ══════════════════════════════════════════
+//  FLIGHTS
+// ══════════════════════════════════════════
+
+// Ensure flights array exists on state
+function ensureFlights(){ if(!state.flights) state.flights=[]; }
+
+function flightCardHtml(f){
+  const dep = f.depTime||'--:--';
+  const arr = f.arrTime||'--:--';
+  const dur = calcDuration(dep,arr);
+  const statusCls = f.status==='On Time'?'on-time':f.status==='Delayed'?'delayed':'scheduled';
+  return `<div class="fc" id="fc-${f.id}">
+    <div class="fc-head">
+      <div>
+        <div class="fc-airline">${xe(f.airline||'')}</div>
+        <div class="fc-num">✈ ${xe(f.flightNum)}</div>
+      </div>
+      <span class="fc-status ${statusCls}">${xe(f.status||'Scheduled')}</span>
+    </div>
+    <div class="fc-route">
+      <div class="fc-airport">
+        <div class="fc-iata">${xe(f.from)}</div>
+        <div class="fc-time">${xe(dep)}</div>
+        <div class="fc-city">${xe(f.fromCity||'')}</div>
+      </div>
+      <div class="fc-arrow">
+        <div class="fc-arrow-line"></div>
+        ${dur?`<div class="fc-duration">${dur}</div>`:''}
+      </div>
+      <div class="fc-airport" style="text-align:right">
+        <div class="fc-iata">${xe(f.to)}</div>
+        <div class="fc-time">${xe(arr)}</div>
+        <div class="fc-city">${xe(f.toCity||'')}</div>
+      </div>
+    </div>
+    <div class="fc-actions">
+      <button class="fc-btn fc-btn-refresh" onclick="refreshFlight('${f.id}')">↻ Refresh</button>
+      <button class="fc-btn fc-btn-track" onclick="trackFlight('${f.flightNum}','${f.depDate||''}')">Track ↗</button>
+      <button class="fc-btn fc-btn-del" onclick="deleteFlight('${f.id}')">Remove</button>
+    </div>
+  </div>`;
+}
+
+function calcDuration(dep, arr){
+  try{
+    const [dh,dm]=dep.split(':').map(Number);
+    const [ah,am]=arr.split(':').map(Number);
+    let mins=(ah*60+am)-(dh*60+dm);
+    if(mins<0) mins+=1440; // overnight
+    if(isNaN(mins)||mins<=0) return '';
+    return `${Math.floor(mins/60)}h ${mins%60}m`;
+  }catch{ return ''; }
+}
+
+// Airport name lookup (common airports — extensible)
+const AIRPORT_NAMES = {
+  LHR:'London Heathrow',LGW:'London Gatwick',LCY:'London City',STN:'London Stansted',MAN:'Manchester',EDI:'Edinburgh',GLA:'Glasgow',
+  JFK:'New York JFK',EWR:'Newark',LAX:'Los Angeles',ORD:'Chicago O\'Hare',SFO:'San Francisco',MIA:'Miami',BOS:'Boston',SEA:'Seattle',DEN:'Denver',ATL:'Atlanta',
+  CDG:'Paris CDG',ORY:'Paris Orly',AMS:'Amsterdam',FRA:'Frankfurt',MUC:'Munich',MAD:'Madrid',BCN:'Barcelona',FCO:'Rome Fiumicino',LIN:'Milan Linate',MXP:'Milan Malpensa',
+  DXB:'Dubai',SIN:'Singapore',HKG:'Hong Kong',NRT:'Tokyo Narita',HND:'Tokyo Haneda',SYD:'Sydney',MEL:'Melbourne',AKL:'Auckland',
+  YYZ:'Toronto',YVR:'Vancouver',YUL:'Montreal',GRU:'São Paulo',EZE:'Buenos Aires',BOG:'Bogotá',LIM:'Lima',SCL:'Santiago',
+  CPT:'Cape Town',JNB:'Johannesburg',CAI:'Cairo',NBO:'Nairobi',
+  BKK:'Bangkok',KUL:'Kuala Lumpur',CGK:'Jakarta',DEL:'Delhi',BOM:'Mumbai',PEK:'Beijing',PVG:'Shanghai',ICN:'Seoul',
+};
+function airportCity(iata){ return AIRPORT_NAMES[iata]||''; }
+
+// Modal state
+let flightTargetDayId = null;
+
+function openFlightModal(){
+  flightTargetDayId = null;
+  _openFlightModal();
+}
+function openFlightModalForDay(dayId){
+  flightTargetDayId = dayId;
+  _openFlightModal();
+  // pre-select day in dropdown
+  setTimeout(()=>{
+    const sel=document.getElementById('fFlightDay');
+    if(sel) sel.value=dayId;
+  },50);
+}
+function _openFlightModal(){
+  // Show/hide API key section based on whether key is saved
+  const savedKey = localStorage.getItem('triply_airlabs_key')||'';
+  if(savedKey){
+    document.getElementById('apiKeyStored').style.display='block';
+    document.getElementById('apiKeyInput').style.display='none';
+    document.getElementById('flightApiKey').value=savedKey;
+  } else {
+    document.getElementById('apiKeyStored').style.display='none';
+    document.getElementById('apiKeyInput').style.display='block';
+    document.getElementById('flightApiKey').value='';
+  }
+  // Clear fields
+  ['fFlightNum','fFrom','fTo','fDep','fArr','fAirline','fFromCity','fToCity'].forEach(id=>{ const el=document.getElementById(id); if(el)el.value=''; });
+  document.getElementById('fFlightDate').value='';
+  document.getElementById('flightLookupHint').textContent='';
+  // Populate day dropdown
+  const sel=document.getElementById('fFlightDay');
+  sel.innerHTML=state.days.map(d=>`<option value="${d.id}">${xe(d.label)}${d.date?' ('+xe(d.date)+')':''}</option>`).join('');
+  if(flightTargetDayId) sel.value=flightTargetDayId;
+  openOv('flightOv');
+}
+function closeFlightModal(){ closeOv('flightOv'); }
+
+function showApiKeyInput(){
+  document.getElementById('apiKeyStored').style.display='none';
+  document.getElementById('apiKeyInput').style.display='block';
+  document.getElementById('flightApiKey').value=localStorage.getItem('triply_airlabs_key')||'';
+}
+
+function saveApiKey(){
+  const k=document.getElementById('flightApiKey').value.trim();
+  if(k) localStorage.setItem('triply_airlabs_key',k);
+}
+
+async function lookupFlight(){
+  const num  = document.getElementById('fFlightNum').value.trim().toUpperCase();
+  const date = document.getElementById('fFlightDate').value;
+  const hint = document.getElementById('flightLookupHint');
+  const key  = document.getElementById('flightApiKey').value.trim();
+
+  if(!num){ showToast('Enter a flight number first'); return; }
+
+  if(!key){
+    hint.textContent='No API key — fill details manually. Sign up free at aviationstack.com.';
+    hint.className='fh';
+    return;
+  }
+
+  hint.textContent='Looking up flight…'; hint.className='fh load';
+  try{
+    const url=`https://airlabs.co/api/v9/flight?flight_iata=${encodeURIComponent(num)}&api_key=${encodeURIComponent(key)}`;
+    const res=await fetch(url);
+    const json=await res.json();
+
+    if(json.error){
+      hint.textContent='Error: '+(json.error.message||'Check your API key');
+      hint.className='fh err'; return;
+    }
+    const f=json.response;
+    if(!f){ hint.textContent='Flight not found — check number and date'; hint.className='fh err'; return; }
+
+    document.getElementById('fFrom').value     = f.dep_iata||'';
+    document.getElementById('fTo').value       = f.arr_iata||'';
+    document.getElementById('fDep').value      = (f.dep_time||f.dep_estimated||'').slice(11,16);
+    document.getElementById('fArr').value      = (f.arr_time||f.arr_estimated||'').slice(11,16);
+    document.getElementById('fAirline').value  = f.airline_name||f.airline_iata||'';
+    document.getElementById('fFromCity').value = airportCity(f.dep_iata)||f.dep_city||'';
+    document.getElementById('fToCity').value   = airportCity(f.arr_iata)||f.arr_city||'';
+
+    const st=f.status;
+    const statusLabel=st==='en-route'?'In Air':st==='landed'?'Landed':st==='scheduled'?'Scheduled':'On Time';
+    hint.textContent=`✓ Found: ${f.dep_iata} → ${f.arr_iata} · ${statusLabel}`; hint.className='fh ok';
+  } catch(e){
+    hint.textContent='Lookup failed — check your API key'; hint.className='fh err';
+    console.error('Airlabs lookup error:',e);
+  }
+}
+
+function saveFlight(){
+  const num     = document.getElementById('fFlightNum').value.trim().toUpperCase();
+  const from    = document.getElementById('fFrom').value.trim().toUpperCase();
+  const to      = document.getElementById('fTo').value.trim().toUpperCase();
+  const dep     = document.getElementById('fDep').value.trim();
+  const arr     = document.getElementById('fArr').value.trim();
+  const airline = document.getElementById('fAirline').value.trim();
+  const fromCity= document.getElementById('fFromCity').value.trim() || airportCity(from);
+  const toCity  = document.getElementById('fToCity').value.trim()   || airportCity(to);
+  const dayId   = document.getElementById('fFlightDay').value;
+  const depDate = document.getElementById('fFlightDate').value;
+
+  if(!num||!from||!to){ showToast('Enter flight number, from and to airports'); return; }
+  if(!dayId){ showToast('Select a day'); return; }
+
+  ensureFlights();
+  state.flights.push({
+    id:uid(), flightNum:num, from, to, depTime:dep, arrTime:arr,
+    airline, fromCity, toCity, dayId, depDate, status:'Scheduled'
+  });
+  save(); closeFlightModal(); renderItinerary();
+  showToast('Flight added to '+( state.days.find(d=>d.id===dayId)?.label||'day'));
+}
+
+async function refreshFlight(flightId){
+  ensureFlights();
+  const f=state.flights.find(x=>x.id===flightId); if(!f)return;
+  const key=localStorage.getItem('triply_airlabs_key')||'';
+  if(!key){ showToast('Add Airlabs API key to refresh live data'); return; }
+  showToast('Refreshing '+f.flightNum+'…');
+  try{
+    const url=`https://airlabs.co/api/v9/flight?flight_iata=${encodeURIComponent(f.flightNum)}&api_key=${encodeURIComponent(key)}`;
+    const res=await fetch(url);
+    const json=await res.json();
+    const d=json.response; if(!d){ showToast('Flight not found'); return; }
+    f.depTime = (d.dep_time||d.dep_estimated||'').slice(11,16)||f.depTime;
+    f.arrTime = (d.arr_time||d.arr_estimated||'').slice(11,16)||f.arrTime;
+    f.from    = d.dep_iata||f.from;
+    f.to      = d.arr_iata||f.to;
+    const st  = d.status;
+    f.status  = st==='en-route'?'In Air':st==='landed'?'Landed':st==='scheduled'?'Scheduled':'On Time';
+    save(); renderItinerary(); showToast('Flight updated: '+f.status);
+  }catch(e){ showToast('Refresh failed'); console.error(e); }
+}
+
+function deleteFlight(flightId){
+  ensureFlights();
+  state.flights=state.flights.filter(f=>f.id!==flightId);
+  save(); renderItinerary();
+}
+
+function trackFlight(num, date){
+  const url=`https://www.flightradar24.com/${encodeURIComponent(num)}`;
+  window.open(url,'_blank');
+}
+function uid(){ return Math.random().toString(36).slice(2,9); }
+function xe(s){ if(!s)return''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function domain(u){ try{return new URL(u).hostname.replace('www.','')}catch{return u;} }
+function showToast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2500); }
+
+document.addEventListener('DOMContentLoaded', checkSetup);
+</script>
+</body>
+</html>
