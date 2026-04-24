@@ -124,7 +124,11 @@ header{height:52px;display:flex;align-items:center;justify-content:space-between
 .rc[data-s="yes"]{border-left:3px solid var(--yes)}
 .rc[data-s="maybe"]{border-left:3px solid var(--maybe)}
 .rc[data-s="no"]{border-left:3px solid var(--no)}
-.rc-img{width:100%;height:90px;object-fit:cover;display:block;background:var(--s2);flex-shrink:0}
+.rc-img{width:100%;height:90px;object-fit:cover;display:block;background:var(--s2);flex-shrink:0;cursor:grab}
+.rc-img.dragging{cursor:grabbing}
+.rc-img-wrap{width:100%;height:90px;overflow:hidden;flex-shrink:0;position:relative;background:var(--s2)}
+.rc-img-wrap img{width:100%;height:100%;object-fit:cover;display:block;cursor:grab;transition:object-position .1s}
+.rc-img-wrap img.dragging{cursor:grabbing}
 .rc-ph{width:100%;height:90px;background:var(--s3);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .rc-bd{padding:8px 11px 5px;flex:1;display:flex;flex-direction:column;justify-content:space-between;min-height:0}
 .rc-top{display:flex;align-items:flex-start;gap:6px;margin-bottom:5px}
@@ -228,7 +232,7 @@ header{height:52px;display:flex;align-items:center;justify-content:space-between
 .cprev-ov.open{opacity:1;pointer-events:all}
 .cprev-modal{background:var(--surface);border:1px solid var(--b2);border-radius:14px;width:540px;max-width:95vw;max-height:88vh;overflow-y:auto;box-shadow:0 30px 80px rgba(0,0,0,.18);transform:translateY(10px);transition:transform .2s}
 .cprev-ov.open .cprev-modal{transform:translateY(0)}
-.cprev-img{width:100%;height:180px;object-fit:cover;display:block;background:var(--s2)}
+.cprev-img{width:100%;max-height:320px;object-fit:contain;display:block;background:var(--s3)}
 .cprev-ph{width:100%;height:80px;background:var(--s3);display:flex;align-items:center;justify-content:center}
 .cprev-body{padding:16px 20px}
 .cprev-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}
@@ -315,9 +319,16 @@ header{height:52px;display:flex;align-items:center;justify-content:space-between
 .pdf-frame{flex:1;border:none;background:var(--s2)}
 
 /* IMAGE LIGHTBOX */
-.lbox-ov{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:3000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.lbox-ov{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:3000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
 .lbox-ov.open{opacity:1;pointer-events:all}
-.lbox-img{max-width:90vw;max-height:90vh;border-radius:var(--r);object-fit:contain}
+.lbox-img{max-width:82vw;max-height:85vh;border-radius:var(--r);object-fit:contain;transition:opacity .15s}
+.lbox-arrow{position:fixed;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);border:none;color:#fff;font-size:28px;cursor:pointer;width:48px;height:64px;border-radius:var(--rs);display:flex;align-items:center;justify-content:center;transition:background .15s;z-index:3001}
+.lbox-arrow:hover{background:rgba(255,255,255,.3)}
+.lbox-arrow.prev{left:16px}
+.lbox-arrow.next{right:16px}
+.lbox-close{position:fixed;top:16px;right:16px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:20px;cursor:pointer;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background .15s;z-index:3001}
+.lbox-close:hover{background:rgba(255,255,255,.3)}
+.lbox-counter{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.7);font-size:12px;font-family:'Jost',sans-serif;z-index:3001;background:rgba(0,0,0,.4);padding:4px 12px;border-radius:20px}
 
 /* TOAST */
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--t);border-radius:var(--r);padding:9px 18px;font-size:12px;color:#fff;z-index:9999;transition:transform .25s,opacity .25s;opacity:0;white-space:nowrap;pointer-events:none}
@@ -671,8 +682,12 @@ a{color:var(--acc);text-decoration:none}a:hover{text-decoration:underline}
 </div>
 
 <!-- IMAGE LIGHTBOX -->
-<div class="lbox-ov" id="lboxOv" onclick="closeLbox()">
+<div class="lbox-ov" id="lboxOv" onclick="lboxBgClick(event)">
+  <button class="lbox-close" onclick="closeLbox()">✕</button>
+  <button class="lbox-arrow prev" id="lboxPrev" onclick="lboxNav(-1)">‹</button>
   <img class="lbox-img" id="lboxImg" src="" alt="">
+  <button class="lbox-arrow next" id="lboxNext" onclick="lboxNav(1)">›</button>
+  <div class="lbox-counter" id="lboxCounter"></div>
 </div>
 
 <!-- TRIP MANAGER MODAL -->
@@ -1421,8 +1436,9 @@ function renderResearch(){
 
 function cardHtml(c){
   const ct = getcat(c.catId);
+  const imgPos = c.imgPosition||'50% 50%';
   const img = c.imgUrl
-    ? `<img class="rc-img" src="${xe(c.imgUrl)}" onerror="this.style.display='none'" alt="">`
+    ? `<div class="rc-img-wrap" title="Drag image to reposition"><img src="${xe(c.imgUrl)}" style="object-position:${imgPos}" onmousedown="startImgDrag(event,'${c.id}')" ondragstart="return false" onerror="this.parentElement.style.display='none'" alt=""></div>`
     : `<div class="rc-ph">${iconCircleHtml(ct.icon||'pin',ct.color,36,ct.customImg||'')}</div>`;
   const mapBtn = (c.lat&&c.lng) ? `<button class="map-pin-btn" onclick="zoomToCard('${c.id}')" title="Zoom map to this place">${svgIcon('pin',10,ct.color)} View on map</button>` : '';
   const assignments = getCardDayAssignments(c.id);
@@ -1637,7 +1653,7 @@ function openCardPreview(cardId){
       </div>
       ${c.address?`<div style="font-size:12px;color:var(--t3);margin-bottom:8px">📍 ${xe(c.address)}</div>`:''}
       ${c.notes?`<div class="cprev-notes">${xe(c.notes)}</div>`:''}
-      ${nimgs.length?`<div class="cprev-section"><div class="cprev-slbl">Images</div><div class="cprev-imgs">${nimgs.map(src=>`<img src="${xe(src)}" onclick="openLbox('${xe(src)}')" alt="">`).join('')}</div></div>`:''}
+      ${nimgs.length?`<div class="cprev-section"><div class="cprev-slbl">Images</div><div class="cprev-imgs">${nimgs.map((src,i)=>`<img src="${xe(src)}" onclick="openLbox('${xe(src)}',${JSON.stringify(nimgs)})" alt="">`).join('')}</div></div>`:''}
       ${(c.link||links.length)?`<div class="cprev-section"><div class="cprev-slbl">Links</div>
         ${c.link?`<div style="font-size:12px;margin-bottom:3px">🔗 <a href="${xe(c.link)}" target="_blank">Main link ↗</a></div>`:''}
         ${links.map(l=>`<div style="font-size:12px;margin-bottom:3px">🔗 <a href="${xe(l.url)}" target="_blank">${xe(l.label||l.url)}</a></div>`).join('')}
@@ -1994,8 +2010,88 @@ function saveEditCat(){
 // ══════════════════════════════════════════
 //  IMAGE LIGHTBOX
 // ══════════════════════════════════════════
-function openLbox(src){ document.getElementById('lboxImg').src=src; document.getElementById('lboxOv').classList.add('open'); }
-function closeLbox(){ document.getElementById('lboxOv').classList.remove('open'); }
+// ── IMAGE DRAG TO REPOSITION ─────────────────────────
+function startImgDrag(e, cardId){
+  e.preventDefault();
+  const img = e.target;
+  const wrap = img.parentElement;
+  const startX = e.clientX, startY = e.clientY;
+  const card = state.cards.find(c=>c.id===cardId); if(!card) return;
+  const pos = (card.imgPosition||'50% 50%').split(' ');
+  let posX = parseFloat(pos[0]), posY = parseFloat(pos[1]);
+
+  img.classList.add('dragging');
+
+  function onMove(ev){
+    const dx = (ev.clientX - startX) / wrap.offsetWidth  * -100;
+    const dy = (ev.clientY - startY) / wrap.offsetHeight * -100;
+    const nx = Math.max(0,Math.min(100, posX+dx));
+    const ny = Math.max(0,Math.min(100, posY+dy));
+    img.style.objectPosition = `${nx}% ${ny}%`;
+  }
+  function onUp(ev){
+    img.classList.remove('dragging');
+    const dx = (ev.clientX - startX) / wrap.offsetWidth  * -100;
+    const dy = (ev.clientY - startY) / wrap.offsetHeight * -100;
+    const nx = Math.max(0,Math.min(100, posX+dx));
+    const ny = Math.max(0,Math.min(100, posY+dy));
+    card.imgPosition = `${nx.toFixed(1)}% ${ny.toFixed(1)}%`;
+    save();
+    document.removeEventListener('mousemove',onMove);
+    document.removeEventListener('mouseup',onUp);
+  }
+  document.addEventListener('mousemove',onMove);
+  document.addEventListener('mouseup',onUp);
+}
+let lboxImages=[], lboxIndex=0;
+
+function openLbox(src, allImgs){
+  // allImgs is optional array — if provided enables navigation
+  lboxImages = allImgs || [src];
+  lboxIndex  = lboxImages.indexOf(src);
+  if(lboxIndex<0) lboxIndex=0;
+  lboxShow();
+  document.getElementById('lboxOv').classList.add('open');
+}
+
+function lboxShow(){
+  const img = document.getElementById('lboxImg');
+  img.style.opacity='0';
+  setTimeout(()=>{
+    img.src = lboxImages[lboxIndex];
+    img.style.opacity='1';
+  },100);
+  // Arrows — hide if only one image
+  const showArrows = lboxImages.length > 1;
+  document.getElementById('lboxPrev').style.display = showArrows?'flex':'none';
+  document.getElementById('lboxNext').style.display = showArrows?'flex':'none';
+  // Counter
+  const counter = document.getElementById('lboxCounter');
+  counter.style.display = showArrows?'block':'none';
+  counter.textContent = `${lboxIndex+1} / ${lboxImages.length}`;
+}
+
+function lboxNav(dir){
+  lboxIndex = (lboxIndex + dir + lboxImages.length) % lboxImages.length;
+  lboxShow();
+}
+
+function lboxBgClick(e){
+  if(e.target === document.getElementById('lboxOv')) closeLbox();
+}
+
+function closeLbox(){
+  document.getElementById('lboxOv').classList.remove('open');
+  lboxImages=[]; lboxIndex=0;
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', e=>{
+  if(!document.getElementById('lboxOv').classList.contains('open')) return;
+  if(e.key==='Escape')   closeLbox();
+  if(e.key==='ArrowLeft')  lboxNav(-1);
+  if(e.key==='ArrowRight') lboxNav(1);
+});
 
 // ══════════════════════════════════════════
 //  OVERLAY
