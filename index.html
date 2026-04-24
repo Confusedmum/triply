@@ -1641,6 +1641,7 @@ function openCardPreview(cardId){
   const atts=pendingAtts[c.id]||[];
   const links=(c.extraLinks||[]).filter(l=>l.url);
   const nimgs=(c.notesImages||[]);
+  currentPreviewImgs=nimgs; // store for lightbox navigation
   document.getElementById('cprevModal').innerHTML=`
     ${c.imgUrl?`<img class="cprev-img" src="${xe(c.imgUrl)}" onerror="this.style.display='none'" alt="">`:`<div class="cprev-ph">${iconCircleHtml(ct.icon||'pin',ct.color,48,ct.customImg||'')}</div>`}
     <div class="cprev-body">
@@ -1653,7 +1654,7 @@ function openCardPreview(cardId){
       </div>
       ${c.address?`<div style="font-size:12px;color:var(--t3);margin-bottom:8px">📍 ${xe(c.address)}</div>`:''}
       ${c.notes?`<div class="cprev-notes">${xe(c.notes)}</div>`:''}
-      ${nimgs.length?`<div class="cprev-section"><div class="cprev-slbl">Images</div><div class="cprev-imgs">${nimgs.map((src,i)=>`<img src="${xe(src)}" onclick="openLbox('${xe(src)}',${JSON.stringify(nimgs)})" alt="">`).join('')}</div></div>`:''}
+      ${nimgs.length?`<div class="cprev-section"><div class="cprev-slbl">Images</div><div class="cprev-imgs">${nimgs.map((src,i)=>`<img src="${xe(src)}" onclick="openLboxFromPreview(${i})" alt="">`).join('')}</div></div>`:''}
       ${(c.link||links.length)?`<div class="cprev-section"><div class="cprev-slbl">Links</div>
         ${c.link?`<div style="font-size:12px;margin-bottom:3px">🔗 <a href="${xe(c.link)}" target="_blank">Main link ↗</a></div>`:''}
         ${links.map(l=>`<div style="font-size:12px;margin-bottom:3px">🔗 <a href="${xe(l.url)}" target="_blank">${xe(l.label||l.url)}</a></div>`).join('')}
@@ -2043,7 +2044,11 @@ function startImgDrag(e, cardId){
   document.addEventListener('mousemove',onMove);
   document.addEventListener('mouseup',onUp);
 }
-let lboxImages=[], lboxIndex=0;
+let lboxImages=[], lboxIndex=0, currentPreviewImgs=[];
+
+function openLboxFromPreview(index){
+  openLbox(currentPreviewImgs[index], currentPreviewImgs);
+}
 
 function openLbox(src, allImgs){
   // allImgs is optional array — if provided enables navigation
