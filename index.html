@@ -472,12 +472,13 @@ a{color:var(--acc);text-decoration:none}a:hover{text-decoration:underline}
       </div>
       <div class="fr">
         <div class="fg"><label class="fl">Cost</label><input class="fi" id="fCost" placeholder="e.g. £45 / free"></div>
-        <div class="fg"><label class="fl">Status</label>
-          <div class="sp">
-            <button class="so yes"       onclick="pickSt('yes')"  >✓ Yes</button>
-            <button class="so maybe sel" onclick="pickSt('maybe')">? Maybe</button>
-            <button class="so no"        onclick="pickSt('no')"   >✕ No</button>
-          </div>
+        <div class="fg"><label class="fl">Start Time</label><input class="fi" type="time" id="fStartTime"></div>
+      </div>
+      <div class="fg"><label class="fl">Status</label>
+        <div class="sp">
+          <button class="so yes"       onclick="pickSt('yes')"  >✓ Yes</button>
+          <button class="so maybe sel" onclick="pickSt('maybe')">? Maybe</button>
+          <button class="so no"        onclick="pickSt('no')"   >✕ No</button>
         </div>
       </div>
       <div class="fg"><label class="fl">Notes</label><textarea class="fta" id="fNotes" placeholder="Opening hours, tips, reminders…"></textarea></div>
@@ -1472,6 +1473,7 @@ function cardHtml(c){
         </div>
         <div class="rc-meta">
           ${c.cost?`<span class="rc-cost">${xe(c.cost)}</span>`:''}
+          ${c.startTime?`<span style="font-size:11px;color:var(--t2)">🕐 ${xe(c.startTime)}</span>`:''}
           <span class="rc-st ${c.status}">${stLabel(c.status)}</span>
           ${mapBtn}
         </div>
@@ -1590,7 +1592,7 @@ function dayColHtml(day){
         ${imgH}
         <div class="ic-body">
           <div class="ic-nm">${xe(c.name)||'Unnamed'}</div>
-          <div class="ic-sub">${svgIcon(ct.icon||'pin',10,ct.color)} ${c.cost?`<span style="color:var(--acc)">${xe(c.cost)}</span>`:''}</div>
+          <div class="ic-sub">${svgIcon(ct.icon||'pin',10,ct.color)} ${c.cost?`<span style="color:var(--acc)">${xe(c.cost)}</span>`:''} ${c.startTime?`<span style="color:var(--t3)">🕐 ${xe(c.startTime)}</span>`:''}</div>
         </div>
         <button class="ic-rm" onclick="rmFromSec('${day.id}','${sec.id}','${c.id}')">✕</button>
       </div>`;
@@ -1652,6 +1654,7 @@ function openCardPreview(cardId){
       <div class="cprev-meta">
         <span class="rc-cat">${svgIcon(ct.icon||'pin',11,ct.color)} ${xe(ct.name)}</span>
         ${c.cost?`<span class="rc-cost">${xe(c.cost)}</span>`:''}
+        ${c.startTime?`<span style="font-size:11px;color:var(--t2)">🕐 ${xe(c.startTime)}</span>`:''}
         <span class="rc-st ${c.status}">${stLabel(c.status)}</span>
         ${(c.lat&&c.lng)?`<button class="map-pin-btn" onclick="closeCprev();zoomToCard('${c.id}')">${svgIcon('pin',11,ct.color)} View on map</button>`:''}
       </div>
@@ -1692,6 +1695,7 @@ function editCard(id){
   document.getElementById('fImgUrl').value=c.imgUrl ||'';
   document.getElementById('fName').value  =c.name   ||'';
   document.getElementById('fCost').value  =c.cost   ||'';
+  document.getElementById('fStartTime').value=c.startTime||'';
   document.getElementById('fNotes').value =c.notes  ||'';
   document.getElementById('fLat').value   =c.lat    ||'';
   document.getElementById('fLng').value   =c.lng    ||'';
@@ -1705,7 +1709,7 @@ function editCard(id){
   openOv('cardOv');
 }
 function clearForm(){
-  ['fLink','fImgUrl','fName','fCost','fNotes','fLat','fLng','fAddr'].forEach(id=>document.getElementById(id).value='');
+  ['fLink','fImgUrl','fName','fCost','fStartTime','fNotes','fLat','fLng','fAddr'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('fHint').textContent=''; document.getElementById('fHint').className='fh';
   document.getElementById('geoHint').textContent='';
   document.getElementById('attList').innerHTML=''; document.getElementById('attHint').textContent='';
@@ -1718,6 +1722,7 @@ function saveCard(){
   const imgRaw = document.getElementById('fImgUrl').value.trim() || document.getElementById('iPrev').src;
   const img    = cleanImg(imgRaw);
   const cost   = document.getElementById('fCost').value.trim();
+  const startTime = document.getElementById('fStartTime').value.trim();
   const notes  = document.getElementById('fNotes').value.trim();
   const catId  = document.getElementById('fCat').value;
   const lat    = parseFloat(document.getElementById('fLat').value)||null;
@@ -1726,7 +1731,7 @@ function saveCard(){
   const extraLinks=collectExtraLinks();
   if(!name&&!link){ showToast('Enter a name or link'); return; }
   const cardAtts = pendingAtts[editId||'__new__']||[];
-  const data={name:name||domain(link),link,imgUrl:img,cost,notes,catId,status:curSt,lat,lng,address,extraLinks,notesImages:curNotesImgs,attachments:cardAtts};
+  const data={name:name||domain(link),link,imgUrl:img,cost,startTime,notes,catId,status:curSt,lat,lng,address,extraLinks,notesImages:curNotesImgs,attachments:cardAtts};
   if(editId){
     Object.assign(state.cards.find(x=>x.id===editId),data);
   } else {
