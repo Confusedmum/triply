@@ -23,34 +23,13 @@
 /* SYNC DOT */
 .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--t3);display:inline-block;margin-left:4px;transition:background .3s;vertical-align:middle}
 .sync-dot.saving{background:var(--maybe)}.sync-dot.saved{background:var(--yes)}.sync-dot.error{background:var(--no)}
-/* ── MOBILE / TABLET ─────────────────────────── */
-@media (max-width: 1024px) {
-  body { overflow: hidden; }
+/* Tab bar hidden by default (desktop) */
+.mobile-tabs { display: none; }
 
-  /* Stack panels vertically, only active one visible */
-  .app { flex-direction: column; overflow: hidden; }
+/* ── PHONE ONLY (≤767px) ─────────────────────── */
+@media (max-width: 767px) {
 
-  .panel {
-    position: absolute !important;
-    inset: 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-    flex: none !important;
-    display: none !important;
-    border: none !important;
-  }
-  .panel.mobile-active {
-    display: flex !important;
-    position: absolute !important;
-    inset: 0 !important;
-  }
-  .panel.collapsed { display: none !important; }
-
-  /* Hide desktop resize handles */
-  .resize-handle { display: none !important; }
-
-  /* Mobile tab bar at bottom of header */
+  /* Show tab bar */
   .mobile-tabs {
     display: flex;
     background: var(--s2);
@@ -79,48 +58,44 @@
   }
   .mobile-tab-icon { font-size: 16px; display: block; margin-bottom: 2px; }
 
-  /* Hide desktop panel toggles on mobile */
+  /* Stack panels, only active one visible */
+  .app { flex-direction: column; overflow: hidden; }
+  .panel {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    flex: none !important;
+    display: none !important;
+    border: none !important;
+  }
+  .panel.mobile-active {
+    display: flex !important;
+    position: absolute !important;
+    inset: 0 !important;
+  }
+  .panel.collapsed { display: none !important; }
+
+  /* Hide desktop resize handles and panel toggles */
+  .resize-handle { display: none !important; }
   .panel-toggles { display: none !important; }
 
-  /* Ensure itin-body is scrollable on iOS */
-  #itin-body {
-    -webkit-overflow-scrolling: touch;
-    overflow-x: auto;
-    overflow-y: hidden;
-  }
+  /* iOS touch scrolling */
+  #itin-body { -webkit-overflow-scrolling: touch; overflow-x: auto; overflow-y: hidden; }
+  #res-body, .dcol-scroll, .mleg { -webkit-overflow-scrolling: touch; }
 
-  /* Panels scroll properly */
-  #res-body, .dcol-scroll, .mleg {
-    -webkit-overflow-scrolling: touch;
-  }
-
-  /* Header wraps on small screens */
-  header {
-    flex-wrap: wrap;
-    height: auto;
-    padding: 8px 12px;
-    gap: 6px;
-  }
-  .hdr-mid {
-    order: 2;
-    flex: none;
-    width: 100%;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 6px;
-  }
-  .hdr-r {
-    order: 1;
-    flex: 1;
-    justify-content: flex-end;
-  }
+  /* Header wraps */
+  header { flex-wrap: wrap; height: auto; padding: 8px 12px; gap: 6px; }
+  .hdr-mid { order: 2; flex: none; width: 100%; flex-wrap: wrap; justify-content: center; gap: 6px; }
+  .hdr-r { order: 1; flex: 1; justify-content: flex-end; }
   .logo { order: 0; }
-
-  /* App body fills remaining space */
   #appBody { position: relative; flex: 1; }
 }
 
-/* Mobile-tab bar position: inserted after header in JS */
+/* iOS touch scrolling applies on all sizes */
+#itin-body { -webkit-overflow-scrolling: touch; }
+#res-body, .dcol-scroll { -webkit-overflow-scrolling: touch; }
 /* MAP VIEW TOGGLES */
 .map-view-toggles{display:flex;gap:5px;padding:6px 10px;border-bottom:1px solid var(--b);background:var(--surface);flex-shrink:0}
 .map-view-btn{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--b);background:transparent;color:var(--t3);font-family:inherit;transition:all .15s}
@@ -497,7 +472,7 @@ a{color:var(--acc);text-decoration:none}a:hover{text-decoration:underline}
   </div>
 </header>
 
-<!-- MOBILE TAB BAR (only shows on ≤1024px) -->
+<!-- MOBILE TAB BAR (only shows on ≤767px) -->
 <div class="mobile-tabs" id="mobileTabs">
   <button class="mobile-tab on" id="mtab-pit" onclick="switchMobileTab('pit')">
     <span class="mobile-tab-icon">🗓</span>Itinerary
@@ -2534,7 +2509,7 @@ function showToast(m){ const t=document.getElementById('toast'); t.textContent=m
 let mobilePanels = ['pit','pres','pmap'];
 let mobileActivePanel = 'pit';
 
-function isMobile(){ return window.innerWidth <= 1024; }
+function isMobile(){ return window.innerWidth <= 767; }
 
 function switchMobileTab(panelId){
   if(!isMobile()) return;
