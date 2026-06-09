@@ -2564,26 +2564,16 @@ function applyMobileLayout(){
   switchMobileTab(mobileActivePanel);
 }
 
-// Patch applyPanelState to also apply mobile layout
-const _origApplyPanelState = applyPanelState;
-function applyPanelState(){
-  _origApplyPanelState();
-  if(isMobile()) applyMobileLayout();
-}
-
 // Re-apply layout on resize
 window.addEventListener('resize', ()=>{
-  if(isMobile()) applyMobileLayout();
-  else {
-    // On desktop, ensure all panels return to desktop positioning
+  if(isMobile()){
+    applyMobileLayout();
+  } else {
     ['pit','pres','pmap'].forEach(id=>{
       const p = document.getElementById(id);
-      if(p){
-        p.classList.remove('mobile-active');
-        p.style.position='';p.style.inset='';
-      }
+      if(p){ p.classList.remove('mobile-active'); }
     });
-    _origApplyPanelState();
+    applyPanelState();
   }
 });
 
