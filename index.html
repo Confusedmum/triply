@@ -23,6 +23,104 @@
 /* SYNC DOT */
 .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--t3);display:inline-block;margin-left:4px;transition:background .3s;vertical-align:middle}
 .sync-dot.saving{background:var(--maybe)}.sync-dot.saved{background:var(--yes)}.sync-dot.error{background:var(--no)}
+/* ── MOBILE / TABLET ─────────────────────────── */
+@media (max-width: 1024px) {
+  body { overflow: hidden; }
+
+  /* Stack panels vertically, only active one visible */
+  .app { flex-direction: column; overflow: hidden; }
+
+  .panel {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    flex: none !important;
+    display: none !important;
+    border: none !important;
+  }
+  .panel.mobile-active {
+    display: flex !important;
+    position: absolute !important;
+    inset: 0 !important;
+  }
+  .panel.collapsed { display: none !important; }
+
+  /* Hide desktop resize handles */
+  .resize-handle { display: none !important; }
+
+  /* Mobile tab bar at bottom of header */
+  .mobile-tabs {
+    display: flex;
+    background: var(--s2);
+    border-top: 1px solid var(--b);
+    flex-shrink: 0;
+    z-index: 200;
+  }
+  .mobile-tab {
+    flex: 1;
+    padding: 10px 4px 8px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--t3);
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    border-top: 2px solid transparent;
+    transition: all .15s;
+  }
+  .mobile-tab.on {
+    color: var(--acc);
+    border-top-color: var(--acc);
+    background: var(--accbg);
+  }
+  .mobile-tab-icon { font-size: 16px; display: block; margin-bottom: 2px; }
+
+  /* Hide desktop panel toggles on mobile */
+  .panel-toggles { display: none !important; }
+
+  /* Ensure itin-body is scrollable on iOS */
+  #itin-body {
+    -webkit-overflow-scrolling: touch;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  /* Panels scroll properly */
+  #res-body, .dcol-scroll, .mleg {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Header wraps on small screens */
+  header {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 8px 12px;
+    gap: 6px;
+  }
+  .hdr-mid {
+    order: 2;
+    flex: none;
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+  }
+  .hdr-r {
+    order: 1;
+    flex: 1;
+    justify-content: flex-end;
+  }
+  .logo { order: 0; }
+
+  /* App body fills remaining space */
+  #appBody { position: relative; flex: 1; }
+}
+
+/* Mobile-tab bar position: inserted after header in JS */
 /* MAP VIEW TOGGLES */
 .map-view-toggles{display:flex;gap:5px;padding:6px 10px;border-bottom:1px solid var(--b);background:var(--surface);flex-shrink:0}
 .map-view-btn{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--b);background:transparent;color:var(--t3);font-family:inherit;transition:all .15s}
@@ -316,7 +414,7 @@ header{height:52px;display:flex;align-items:center;justify-content:space-between
 .pdf-ov.open .pdf-modal{transform:translateY(0)}
 .pdf-head{display:flex;align-items:center;justify-content:space-between;padding:11px 17px;border-bottom:1px solid var(--b);flex-shrink:0}
 .pdf-title{font-size:13px;font-weight:600;color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pdf-frame{flex:1;border:none;background:var(--s2)}
+.pdf-container{flex:1;overflow-y:auto;overflow-x:auto;background:var(--s2);padding:12px;-webkit-overflow-scrolling:touch}
 
 /* IMAGE LIGHTBOX */
 .lbox-ov{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:3000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
@@ -358,6 +456,7 @@ a{color:var(--acc);text-decoration:none}a:hover{text-decoration:underline}
 .map-search-result strong{color:var(--t);font-weight:600}
 .gm-style .gm-style-iw-c{border-radius:var(--r)!important}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
 
@@ -397,6 +496,19 @@ a{color:var(--acc);text-decoration:none}a:hover{text-decoration:underline}
     <button class="btn btn-p btn-s" onclick="openAddCard()">+ Add Place</button>
   </div>
 </header>
+
+<!-- MOBILE TAB BAR (only shows on ≤1024px) -->
+<div class="mobile-tabs" id="mobileTabs">
+  <button class="mobile-tab on" id="mtab-pit" onclick="switchMobileTab('pit')">
+    <span class="mobile-tab-icon">🗓</span>Itinerary
+  </button>
+  <button class="mobile-tab" id="mtab-pres" onclick="switchMobileTab('pres')">
+    <span class="mobile-tab-icon">🔍</span>Research
+  </button>
+  <button class="mobile-tab" id="mtab-pmap" onclick="switchMobileTab('pmap')">
+    <span class="mobile-tab-icon">🗺</span>Map
+  </button>
+</div>
 
 <div class="app" id="appBody">
   <div class="panel" id="pit">
@@ -677,8 +789,14 @@ a{color:var(--acc);text-decoration:none}a:hover{text-decoration:underline}
 <!-- PDF VIEWER -->
 <div class="pdf-ov" id="pdfOv">
   <div class="pdf-modal">
-    <div class="pdf-head"><span class="pdf-title" id="pdfTitle">Document</span><button class="ibtn" onclick="closePdf()">✕</button></div>
-    <iframe class="pdf-frame" id="pdfFrame" src=""></iframe>
+    <div class="pdf-head">
+      <span class="pdf-title" id="pdfTitle">Document</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span id="pdfPageInfo" style="font-size:11px;color:var(--t3)"></span>
+        <button class="ibtn" onclick="closePdf()">✕</button>
+      </div>
+    </div>
+    <div id="pdfContainer" style="flex:1;overflow-y:auto;overflow-x:auto;background:var(--s2);padding:12px;display:flex;flex-direction:column;align-items:center;gap:10px;-webkit-overflow-scrolling:touch"></div>
   </div>
 </div>
 
@@ -864,7 +982,8 @@ async function bootApp(){
     loadGoogleMaps();
     document.getElementById('startDate').addEventListener('change',e=>{state.startDate=e.target.value;autoSave();});
     document.getElementById('endDate').addEventListener('change',e=>{state.endDate=e.target.value;autoSave();});
-    applyPanelState();initResizeHandles();buildIconGrids();renderAll();
+    applyPanelState();initResizeHandles();initTouchResizeHandles();buildIconGrids();renderAll();
+    if(isMobile()) applyMobileLayout();
     setSyncStatus('saved');
   }catch(e){console.error('Boot error:',e);setSyncStatus('error');showToast('Could not connect — check your Supabase keys');}
 }
@@ -1920,8 +2039,63 @@ function renderAttList(){
     <button class="att-del" onclick="delPendingAtt('${cardId}','${a.id}')">✕</button></div>`).join('');
 }
 function delPendingAtt(cardId,attId){ if(pendingAtts[cardId])pendingAtts[cardId]=pendingAtts[cardId].filter(a=>a.id!==attId); renderAttList(); }
-function openPdfFromCard(cardId,attId){ const a=(pendingAtts[cardId]||[]).find(x=>x.id===attId); if(a){document.getElementById('pdfTitle').textContent=a.name;document.getElementById('pdfFrame').src=a.url||a.dataUrl||'';document.getElementById('pdfOv').classList.add('open');} }
-function closePdf(){ document.getElementById('pdfOv').classList.remove('open'); document.getElementById('pdfFrame').src=''; }
+
+// ── PDF.js multi-page viewer ──────────────────────────────
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+async function openPdfFromCard(cardId, attId){
+  const a = (pendingAtts[cardId]||[]).find(x=>x.id===attId);
+  if(!a) return;
+  document.getElementById('pdfTitle').textContent = a.name;
+  document.getElementById('pdfPageInfo').textContent = '';
+  const container = document.getElementById('pdfContainer');
+  container.innerHTML = '<div style="padding:20px;color:var(--t3);font-size:13px">Loading PDF…</div>';
+  document.getElementById('pdfOv').classList.add('open');
+
+  try {
+    const src = a.url || a.dataUrl || '';
+    const loadingTask = pdfjsLib.getDocument(src);
+    const pdf = await loadingTask.promise;
+    const totalPages = pdf.numPages;
+    document.getElementById('pdfPageInfo').textContent = totalPages + ' page' + (totalPages!==1?'s':'');
+    container.innerHTML = '';
+
+    // Render all pages sequentially
+    for(let pageNum = 1; pageNum <= totalPages; pageNum++){
+      const page = await pdf.getPage(pageNum);
+      // Scale to fit within ~800px width, accounting for device pixel ratio
+      const desiredWidth = Math.min(container.clientWidth - 24, 800);
+      const viewport = page.getViewport({ scale: 1 });
+      const scale = desiredWidth / viewport.width;
+      const scaledViewport = page.getViewport({ scale });
+
+      const canvas = document.createElement('canvas');
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width  = scaledViewport.width  * dpr;
+      canvas.height = scaledViewport.height * dpr;
+      canvas.style.width  = scaledViewport.width  + 'px';
+      canvas.style.height = scaledViewport.height + 'px';
+      canvas.style.borderRadius = '6px';
+      canvas.style.boxShadow = '0 2px 12px rgba(0,0,0,.15)';
+      canvas.style.maxWidth = '100%';
+      canvas.style.display = 'block';
+
+      const ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
+      await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
+      container.appendChild(canvas);
+    }
+  } catch(e) {
+    container.innerHTML = '<div style="padding:20px;color:var(--no);font-size:13px">Could not load PDF. Try downloading it instead.</div>';
+    console.error('PDF.js error:', e);
+  }
+}
+
+function closePdf(){
+  document.getElementById('pdfOv').classList.remove('open');
+  // Clear canvas to free memory
+  document.getElementById('pdfContainer').innerHTML = '';
+}
 document.getElementById('pdfOv').addEventListener('click',e=>{ if(e.target===document.getElementById('pdfOv'))closePdf(); });
 
 // ══════════════════════════════════════════
@@ -2353,6 +2527,114 @@ function uid(){ return Math.random().toString(36).slice(2,9); }
 function xe(s){ if(!s)return''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function domain(u){ try{return new URL(u).hostname.replace('www.','')}catch{return u;} }
 function showToast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2500); }
+
+// ══════════════════════════════════════════
+//  MOBILE TAB NAVIGATION
+// ══════════════════════════════════════════
+let mobilePanels = ['pit','pres','pmap'];
+let mobileActivePanel = 'pit';
+
+function isMobile(){ return window.innerWidth <= 1024; }
+
+function switchMobileTab(panelId){
+  if(!isMobile()) return;
+  mobileActivePanel = panelId;
+  mobilePanels.forEach(id=>{
+    const panel = document.getElementById(id);
+    const tab   = document.getElementById('mtab-'+id);
+    if(!panel) return;
+    // Only switch among panels that aren't permanently hidden by desktop toggle
+    const isVisible = state && state.panelVisible[id] !== false;
+    if(id === panelId && isVisible){
+      panel.classList.add('mobile-active');
+    } else {
+      panel.classList.remove('mobile-active');
+    }
+    if(tab) tab.classList.toggle('on', id === panelId);
+  });
+  // Trigger map resize when switching to map tab
+  if(panelId === 'pmap' && map && window.google){
+    setTimeout(()=>google.maps.event.trigger(map,'resize'), 100);
+  }
+}
+
+function applyMobileLayout(){
+  if(!isMobile()) return;
+  // Make sure the active panel is shown
+  switchMobileTab(mobileActivePanel);
+}
+
+// Patch applyPanelState to also apply mobile layout
+const _origApplyPanelState = applyPanelState;
+function applyPanelState(){
+  _origApplyPanelState();
+  if(isMobile()) applyMobileLayout();
+}
+
+// Re-apply layout on resize
+window.addEventListener('resize', ()=>{
+  if(isMobile()) applyMobileLayout();
+  else {
+    // On desktop, ensure all panels return to desktop positioning
+    ['pit','pres','pmap'].forEach(id=>{
+      const p = document.getElementById(id);
+      if(p){
+        p.classList.remove('mobile-active');
+        p.style.position='';p.style.inset='';
+      }
+    });
+    _origApplyPanelState();
+  }
+});
+
+// ══════════════════════════════════════════
+//  TOUCH RESIZE HANDLES
+// ══════════════════════════════════════════
+function initTouchResizeHandles(){
+  ['rh1','rh2'].forEach(rhId=>{
+    const handle = document.getElementById(rhId);
+    let startX, startWL, startWR, leftEl, rightEl;
+
+    handle.addEventListener('touchstart', e=>{
+      if(isMobile()) return;
+      const touch = e.touches[0];
+      const lid = handle._left, rid = handle._right;
+      if(!lid||!rid) return;
+      leftEl  = document.getElementById(lid);
+      rightEl = document.getElementById(rid);
+      startX  = touch.clientX;
+      startWL = leftEl.offsetWidth;
+      startWR = rightEl.offsetWidth;
+      handle.classList.add('dragging');
+      e.preventDefault();
+    }, {passive:false});
+
+    document.addEventListener('touchmove', e=>{
+      if(!handle.classList.contains('dragging')) return;
+      const touch = e.touches[0];
+      const dx   = touch.clientX - startX;
+      const minW = 180;
+      const newL = startWL + dx;
+      const newR = startWR - dx;
+      if(newL >= minW && newR >= minW){
+        const lid = handle._left, rid = handle._right;
+        if(lid !== 'pres'){ leftEl.style.width  = newL+'px'; state.panelWidths[lid]=newL; }
+        if(rid !== 'pres'){ rightEl.style.width = newR+'px'; state.panelWidths[rid]=newR; }
+        if(lid === 'pres'){ rightEl.style.width = newR+'px'; state.panelWidths[rid]=newR; }
+        if(rid === 'pres'){ leftEl.style.width  = newL+'px'; state.panelWidths[lid]=newL; }
+        if(map&&window.google) google.maps.event.trigger(map,'resize');
+      }
+      e.preventDefault();
+    }, {passive:false});
+
+    document.addEventListener('touchend', ()=>{
+      if(!handle.classList.contains('dragging')) return;
+      handle.classList.remove('dragging');
+      save();
+      if(map&&window.google) google.maps.event.trigger(map,'resize');
+    });
+  });
+}
 
 document.addEventListener('DOMContentLoaded', checkSetup);
 </script>
