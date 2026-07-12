@@ -1327,16 +1327,18 @@ function refreshMap(){
   mapMarkers.forEach(m=>m.setMap(null)); mapMarkers=[];
   state.cards.forEach(card=>{
     if(!card.lat||!card.lng)return;
+    // Hide 'No' cards from map entirely
+    if(card.status==='no') return;
     const c=getcat(card.catId),dimmed=mapFilterSt!=='all'&&card.status!==mapFilterSt,color=c.color||'#8b6914';
+    // Yes cards get a muted green background; Maybe cards get cream
+    const circleFill = card.status==='yes' ? '#d4ead8' : '#f5f3ee';
     let icon;
     if(c.customImg){
       icon={url:c.customImg,scaledSize:new google.maps.Size(36,36),anchor:new google.maps.Point(18,18)};
     }else{
-      // 36px pin: circle + icon centred. Icon paths are 24x24, scaled to 16x16, centred at 18,18
       const iconPaths=ICONS[c.icon||'pin']||ICONS['pin'];
       const opacity=dimmed?0.25:1;
-      // translate to centre: (36-16)/2 = 10, scale factor: 16/24 = 0.667
-      const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36" opacity="${opacity}"><circle cx="18" cy="18" r="16" fill="#f5f3ee" stroke="${color}" stroke-width="2"/><g transform="translate(10,10) scale(0.667)" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${iconPaths}</g></svg>`;
+      const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36" opacity="${opacity}"><circle cx="18" cy="18" r="16" fill="${circleFill}" stroke="${color}" stroke-width="2"/><g transform="translate(10,10) scale(0.667)" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${iconPaths}</g></svg>`;
       icon={url:'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg),scaledSize:new google.maps.Size(36,36),anchor:new google.maps.Point(18,18)};
     }
     const marker=new google.maps.Marker({position:{lat:parseFloat(card.lat),lng:parseFloat(card.lng)},map,icon,opacity:dimmed?0.25:1,title:card.name});
@@ -1570,6 +1572,7 @@ function cardHtml(c){
           ${c.cost?`<span class="rc-cost">${xe(c.cost)}</span>`:''}
           ${c.startTime?`<span style="font-size:11px;color:var(--t2)">🕐 ${xe(c.startTime)}</span>`:''}
           <span class="rc-st ${c.status}">${stLabel(c.status)}</span>
+          ${c.addedBy?`<span style="font-size:10px;background:#e8f0fe;border:1px solid #c5d4f5;color:#3a5fa8;border-radius:20px;padding:2px 7px;font-weight:500">👤 ${xe(c.addedBy)}</span>`:''}
           ${mapBtn}
         </div>
       </div>
@@ -2504,30 +2507,72 @@ function trackFlight(num, date){
 // ══════════════════════════════════════════
 function shareTrip(){
   if(!activeId||!state){ showToast('No active trip to share'); return; }
-  save(); // ensure latest data is in Supabase
-  const base = location.origin + location.pathname.replace('index.html','') + 'viewer.html';
-  const url = `${base}?trip=${encodeURIComponent(activeId)}&sb=${encodeURIComponent(cfg.sbUrl)}&key=${encodeURIComponent(cfg.sbKey)}&gm=${encodeURIComponent(cfg.gmKey)}`;
+  save();
+  const base = location.origin + location.pathname.replace('index.html','');
+  const viewerBase = base + 'viewer.html';
+  const collabBase = base + 'collab.html';
+  const tripEnc  = encodeURIComponent(activeId);
+  const sbEnc    = encodeURIComponent(cfg.sbUrl);
+  const keyEnc   = encodeURIComponent(cfg.sbKey);
+  const gmEnc    = encodeURIComponent(cfg.gmKey);
+  const viewUrl  = `${viewerBase}?trip=${tripEnc}&sb=${sbEnc}&key=${keyEnc}&gm=${gmEnc}`;
 
-  // Show a modal with the link
   const ov = document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;background:rgba(44,40,32,.6);backdrop-filter:blur(4px);z-index:5000;display:flex;align-items:center;justify-content:center';
-  ov.innerHTML=`<div style="background:var(--surface);border:1px solid var(--b2);border-radius:14px;width:520px;max-width:95vw;padding:24px;box-shadow:0 30px 80px rgba(0,0,0,.2)">
-    <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--acc);margin-bottom:6px">Share "${xe(state.tripName)}"</div>
-    <div style="font-size:12px;color:var(--t3);margin-bottom:14px;line-height:1.6">This link gives <strong style="color:var(--t)">read-only</strong> access to this trip only. Anyone with the link can view it but cannot make changes.</div>
-    <div style="display:flex;gap:7px;align-items:center">
-      <input id="shareLinkInput" value="${url}" readonly style="flex:1;background:var(--s2);border:1px solid var(--b);border-radius:var(--rs);padding:7px 10px;font-size:11px;color:var(--t2);font-family:inherit;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-      <button onclick="
-        const i=document.getElementById('shareLinkInput');
-        i.select();navigator.clipboard.writeText(i.value).then(()=>showToast('Link copied to clipboard ✓')).catch(()=>{i.select();document.execCommand('copy');showToast('Link copied ✓');});
-      " style="padding:7px 14px;border-radius:var(--rs);background:var(--acc);color:#fff;border:none;font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap">Copy link</button>
+  ov.innerHTML=`<div style="background:var(--surface);border:1px solid var(--b2);border-radius:14px;width:540px;max-width:95vw;padding:24px;box-shadow:0 30px 80px rgba(0,0,0,.2)">
+    <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--acc);margin-bottom:4px">Share "${xe(state.tripName)}"</div>
+    <div style="font-size:12px;color:var(--t3);margin-bottom:18px">Choose how much access to give</div>
+
+    <!-- READ ONLY -->
+    <div style="background:var(--s2);border:1px solid var(--b);border-radius:10px;padding:14px;margin-bottom:10px">
+      <div style="font-size:13px;font-weight:600;color:var(--t);margin-bottom:3px">👁 View only</div>
+      <div style="font-size:11px;color:var(--t3);margin-bottom:10px;line-height:1.5">They can view the full trip — itinerary, research, and map — but cannot make any changes.</div>
+      <div style="display:flex;gap:7px;align-items:center">
+        <input id="shareLinkView" value="${viewUrl}" readonly style="flex:1;background:var(--surface);border:1px solid var(--b);border-radius:var(--rs);padding:6px 9px;font-size:11px;color:var(--t2);font-family:inherit;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+        <button onclick="copyShareLink('shareLinkView')" style="padding:6px 12px;border-radius:var(--rs);background:var(--acc);color:#fff;border:none;font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap">Copy</button>
+      </div>
     </div>
-    <div style="font-size:11px;color:var(--t3);margin-top:10px;line-height:1.5">💡 The link includes your API keys so the viewer can load trip data. Only share with people you trust.</div>
-    <div style="display:flex;justify-content:flex-end;margin-top:16px">
-      <button onclick="this.closest('div[style]').parentElement.remove()" style="padding:6px 14px;border-radius:var(--rs);background:transparent;color:var(--t2);border:1px solid var(--b);font-family:inherit;font-size:12px;cursor:pointer">Close</button>
+
+    <!-- COLLAB -->
+    <div style="background:var(--s2);border:1px solid var(--b);border-radius:10px;padding:14px;margin-bottom:16px">
+      <div style="font-size:13px;font-weight:600;color:var(--t);margin-bottom:3px">✏️ Contributor access</div>
+      <div style="font-size:11px;color:var(--t3);margin-bottom:10px;line-height:1.5">They can add &amp; edit research cards and update the itinerary, but cannot delete anything, rename the trip, or manage days/flights.</div>
+      <div style="display:flex;gap:7px;align-items:center;margin-bottom:8px">
+        <label style="font-size:11px;color:var(--t2);white-space:nowrap;font-weight:500">Their name:</label>
+        <input id="collabName" placeholder="e.g. Sarah" style="flex:1;background:var(--surface);border:1px solid var(--b);border-radius:var(--rs);padding:6px 9px;font-size:12px;color:var(--t);font-family:inherit;outline:none" oninput="updateCollabLink()">
+      </div>
+      <div style="display:flex;gap:7px;align-items:center">
+        <input id="shareLinkCollab" value="" placeholder="Enter a name above to generate link" readonly style="flex:1;background:var(--surface);border:1px solid var(--b);border-radius:var(--rs);padding:6px 9px;font-size:11px;color:var(--t2);font-family:inherit;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+        <button onclick="copyShareLink('shareLinkCollab')" style="padding:6px 12px;border-radius:var(--rs);background:var(--acc);color:#fff;border:none;font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap">Copy</button>
+      </div>
+    </div>
+
+    <div style="font-size:11px;color:var(--t3);margin-bottom:14px;line-height:1.5">💡 Links include your API keys — only share with people you trust.</div>
+    <div style="display:flex;justify-content:flex-end">
+      <button onclick="document.getElementById('_shareOv').remove()" style="padding:6px 14px;border-radius:var(--rs);background:transparent;color:var(--t2);border:1px solid var(--b);font-family:inherit;font-size:12px;cursor:pointer">Close</button>
     </div>
   </div>`;
+  ov.id='_shareOv';
   ov.addEventListener('click',e=>{ if(e.target===ov) ov.remove(); });
   document.body.appendChild(ov);
+
+  // Store these for updateCollabLink
+  window._shareCollabBase = `${collabBase}?trip=${tripEnc}&sb=${sbEnc}&key=${keyEnc}&gm=${gmEnc}`;
+}
+
+function updateCollabLink(){
+  const name = document.getElementById('collabName').value.trim();
+  const input = document.getElementById('shareLinkCollab');
+  if(!name){ input.value=''; input.placeholder='Enter a name above to generate link'; return; }
+  input.value = window._shareCollabBase + '&name=' + encodeURIComponent(name);
+}
+
+function copyShareLink(inputId){
+  const i = document.getElementById(inputId);
+  if(!i||!i.value){ showToast('Enter a name first'); return; }
+  navigator.clipboard.writeText(i.value)
+    .then(()=>showToast('Link copied ✓'))
+    .catch(()=>{ i.select(); document.execCommand('copy'); showToast('Link copied ✓'); });
 }
 
 function uid(){ return Math.random().toString(36).slice(2,9); }
