@@ -2403,44 +2403,89 @@ function saveApiKey(){
   if(k) localStorage.setItem('triply_airlabs_key',k);
 }
 
+// ── Airlabs helpers ──
+// Airlabs' /flight endpoint has no date filter: it returns whichever flight with
+// that number is flying today (or flew most recently). For future dates we use
+// the /routes timetable instead and pick the entry for the travel date's weekday.
+async function airlabsGet(endpoint, params, key){
+  const qs=new URLSearchParams({...params, api_key:key}).toString();
+  const res=await fetch(`https://airlabs.co/api/v9/${endpoint}?${qs}`);
+  return res.json();
+}
+function daysUntilDate(dateStr){
+  if(!dateStr) return null;
+  const t=new Date(); t.setHours(0,0,0,0);
+  const d=new Date(dateStr+'T00:00:00');
+  return Math.round((d-t)/86400000);
+}
+function airlabsStatusLabel(st){
+  return st==='en-route'?'In Air':st==='landed'?'Landed':st==='cancelled'?'Cancelled':st==='scheduled'?'Scheduled':'On Time';
+}
+
 async function lookupFlight(){
-  const num  = document.getElementById('fFlightNum').value.trim().toUpperCase();
+  const num  = document.getElementById('fFlightNum').value.trim().toUpperCase().replace(/\s+/g,'');
   const date = document.getElementById('fFlightDate').value;
   const hint = document.getElementById('flightLookupHint');
   const key  = document.getElementById('flightApiKey').value.trim();
 
   if(!num){ showToast('Enter a flight number first'); return; }
+  if(!date){ showToast('Pick the flight date first'); return; }
 
   if(!key){
-    hint.textContent='No API key — fill details manually. Sign up free at aviationstack.com.';
+    hint.textContent='No API key — fill details manually. Sign up free at airlabs.co.';
     hint.className='fh';
     return;
   }
 
+  const fill=(depIata,arrIata,depTime,arrTime,airline)=>{
+    document.getElementById('fFrom').value     = depIata||'';
+    document.getElementById('fTo').value       = arrIata||'';
+    document.getElementById('fDep').value      = depTime||'';
+    document.getElementById('fArr').value      = arrTime||'';
+    if(airline) document.getElementById('fAirline').value = airline;
+    document.getElementById('fFromCity').value = airportCity(depIata)||'';
+    document.getElementById('fToCity').value   = airportCity(arrIata)||'';
+  };
+
   hint.textContent='Looking up flight…'; hint.className='fh load';
   try{
-    const url=`https://airlabs.co/api/v9/flight?flight_iata=${encodeURIComponent(num)}&api_key=${encodeURIComponent(key)}`;
-    const res=await fetch(url);
-    const json=await res.json();
+    // 1) Flight is today or tomorrow: try live data, but only accept it if the date matches.
+    const dd=daysUntilDate(date);
+    if(dd!==null && dd>=0 && dd<=1){
+      const json=await airlabsGet('flight',{flight_iata:num},key);
+      if(json.error){ hint.textContent='Error: '+(json.error.message||'Check your API key'); hint.className='fh err'; return; }
+      const f=json.response;
+      const liveDate=(f&&(f.dep_time||f.dep_estimated||'')).slice(0,10);
+      if(f && liveDate===date){
+        fill(f.dep_iata,f.arr_iata,(f.dep_time||'').slice(11,16),(f.arr_time||'').slice(11,16),f.airline_name||f.airline_iata);
+        hint.textContent=`✓ Live: ${f.dep_iata} → ${f.arr_iata} · ${airlabsStatusLabel(f.status)}`; hint.className='fh ok';
+        return;
+      }
+    }
 
-    if(json.error){
-      hint.textContent='Error: '+(json.error.message||'Check your API key');
+    // 2) Otherwise use the timetable for that day of the week.
+    const json=await airlabsGet('routes',{flight_iata:num},key);
+    if(json.error){ hint.textContent='Error: '+(json.error.message||'Check your API key'); hint.className='fh err'; return; }
+    const routes=Array.isArray(json.response)?json.response:[];
+    if(!routes.length){ hint.textContent='Flight not found — check the number, or enter details from your booking'; hint.className='fh err'; return; }
+
+    const dayNames=['sun','mon','tue','wed','thu','fri','sat'];
+    const wd=dayNames[new Date(date+'T12:00:00').getDay()];
+    const wdLabel=wd.charAt(0).toUpperCase()+wd.slice(1);
+    let matches=routes.filter(r=>!Array.isArray(r.days)||r.days.includes(wd));
+    // If the flight number has several legs and you've already typed a From airport, use that leg
+    const typedFrom=document.getElementById('fFrom').value.trim().toUpperCase();
+    if(typedFrom && matches.some(r=>r.dep_iata===typedFrom)) matches=matches.filter(r=>r.dep_iata===typedFrom);
+
+    if(!matches.length){
+      hint.textContent=`${num} isn't listed as flying on a ${wdLabel} in Airlabs' timetable — please enter times from your booking`;
       hint.className='fh err'; return;
     }
-    const f=json.response;
-    if(!f){ hint.textContent='Flight not found — check number and date'; hint.className='fh err'; return; }
-
-    document.getElementById('fFrom').value     = f.dep_iata||'';
-    document.getElementById('fTo').value       = f.arr_iata||'';
-    document.getElementById('fDep').value      = (f.dep_time||f.dep_estimated||'').slice(11,16);
-    document.getElementById('fArr').value      = (f.arr_time||f.arr_estimated||'').slice(11,16);
-    document.getElementById('fAirline').value  = f.airline_name||f.airline_iata||'';
-    document.getElementById('fFromCity').value = airportCity(f.dep_iata)||f.dep_city||'';
-    document.getElementById('fToCity').value   = airportCity(f.arr_iata)||f.arr_city||'';
-
-    const st=f.status;
-    const statusLabel=st==='en-route'?'In Air':st==='landed'?'Landed':st==='scheduled'?'Scheduled':'On Time';
-    hint.textContent=`✓ Found: ${f.dep_iata} → ${f.arr_iata} · ${statusLabel}`; hint.className='fh ok';
+    const r=matches[0];
+    fill(r.dep_iata,r.arr_iata,(r.dep_time||'').slice(0,5),(r.arr_time||'').slice(0,5),r.airline_iata);
+    const legNote=matches.length>1?` · ${matches.length} legs found, showing first`:'';
+    hint.textContent=`✓ ${wdLabel} timetable: ${r.dep_iata} → ${r.arr_iata}${legNote} · check times against your booking`;
+    hint.className='fh ok';
   } catch(e){
     hint.textContent='Lookup failed — check your API key'; hint.className='fh err';
     console.error('Airlabs lookup error:',e);
@@ -2476,18 +2521,24 @@ async function refreshFlight(flightId){
   const f=state.flights.find(x=>x.id===flightId); if(!f)return;
   const key=localStorage.getItem('triply_airlabs_key')||'';
   if(!key){ showToast('Add Airlabs API key to refresh live data'); return; }
+
+  // Live data only exists close to the day — never overwrite saved times with another day's flight.
+  const dd=daysUntilDate(f.depDate);
+  if(dd===null){ showToast('Add a date to this flight to get live status'); return; }
+  if(dd>1){ showToast('Live status is available from the day before the flight'); return; }
+  if(dd<-1){ showToast('This flight has already happened'); return; }
+
   showToast('Refreshing '+f.flightNum+'…');
   try{
-    const url=`https://airlabs.co/api/v9/flight?flight_iata=${encodeURIComponent(f.flightNum)}&api_key=${encodeURIComponent(key)}`;
-    const res=await fetch(url);
-    const json=await res.json();
+    const json=await airlabsGet('flight',{flight_iata:f.flightNum},key);
     const d=json.response; if(!d){ showToast('Flight not found'); return; }
-    f.depTime = (d.dep_time||d.dep_estimated||'').slice(11,16)||f.depTime;
-    f.arrTime = (d.arr_time||d.arr_estimated||'').slice(11,16)||f.arrTime;
+    const liveDate=(d.dep_time||d.dep_estimated||'').slice(0,10);
+    if(liveDate!==f.depDate){ showToast(`Airlabs is showing the ${liveDate||'wrong'} flight — not updated`); return; }
+    f.depTime = (d.dep_estimated||d.dep_time||'').slice(11,16)||f.depTime;
+    f.arrTime = (d.arr_estimated||d.arr_time||'').slice(11,16)||f.arrTime;
     f.from    = d.dep_iata||f.from;
     f.to      = d.arr_iata||f.to;
-    const st  = d.status;
-    f.status  = st==='en-route'?'In Air':st==='landed'?'Landed':st==='scheduled'?'Scheduled':'On Time';
+    f.status  = airlabsStatusLabel(d.status);
     save(); renderItinerary(); showToast('Flight updated: '+f.status);
   }catch(e){ showToast('Refresh failed'); console.error(e); }
 }
